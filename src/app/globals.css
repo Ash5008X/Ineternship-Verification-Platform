@@ -1,0 +1,222 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+@import "tailwindcss";
+
+/* =========================================================
+   INTERNCHECK DESIGN SYSTEM
+   Rose + Burgundy
+   Light + Dark Theme
+   ========================================================= */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =========================================================
+   LIGHT THEME
+   ========================================================= */
+
+:root {
+  /* Backgrounds */
+  --background: #fbf7f8;
+  --surface: #ffffff;
+  --surface-alt: #f8f0f2;
+  --surface-elevated: #ffffff;
+
+  /* Text */
+  --text: #241a1e;
+  --text-secondary: #665c61;
+  --text-muted: #8b8086;
+
+  /* Borders */
+  --border: #e9dde1;
+  --border-strong: #dccbd1;
+
+  /* Brand */
+  --primary: #7a1f3d;
+  --primary-hover: #641831;
+  --rose: #b94d6b;
+  --rose-soft: #f8e4ea;
+  --rose-deep: #5a1c32;
+
+  /* Status */
+  --success: #238653;
+  --success-bg: #e8f6ee;
+
+  --warning: #c48716;
+  --warning-bg: #fff4d9;
+
+  --danger: #c94343;
+  --danger-bg: #fdeaea;
+
+  /* Fonts */
+  --font-display: "DM Serif Display", serif;
+  --font-ui: "Manrope", sans-serif;
+  --font-number: "Space Grotesk", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+}
+
+/* =========================================================
+   DARK THEME
+   ========================================================= */
+
+.dark {
+  /* Backgrounds */
+  --background: #120d10;
+  --surface: #1b1216;
+  --surface-alt: #24171d;
+  --surface-elevated: #2d1b23;
+
+  /* Text */
+  --text: #f8eef1;
+  --text-secondary: #c7b9be;
+  --text-muted: #95868d;
+
+  /* Borders */
+  --border: #3a272e;
+  --border-strong: #51313c;
+
+  /* Brand */
+  --primary: #e05a7a;
+  --primary-hover: #f06b8b;
+  --rose: #f08aa2;
+  --rose-soft: #3a1d29;
+  --rose-deep: #5a2638;
+
+  /* Status */
+  --success: #55c98a;
+  --success-bg: #142a20;
+
+  --warning: #f0b84b;
+  --warning-bg: #302719;
+
+  --danger: #ff6b6b;
+  --danger-bg: #351b1d;
+}
+
+/* =========================================================
+   TAILWIND THEME TOKENS
+   ========================================================= */
+
+@theme inline {
+  /* Colors */
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-surface-elevated: var(--surface-elevated);
+
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+
+  --color-rose: var(--rose);
+  --color-rose-soft: var(--rose-soft);
+  --color-rose-deep: var(--rose-deep);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+
+  /* Fonts */
+
+  --font-display: var(--font-display);
+  --font-ui: var(--font-ui);
+  --font-number: var(--font-number);
+  --font-mono: var(--font-mono);
+
+  /* Radius */
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+/* =========================================================
+   BASE
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-ui);
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+.font-number {
+  font-family: var(--font-number);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* =========================================================
+   SELECTION
+   ========================================================= */
+
+::selection {
+  background: var(--rose);
+  color: #ffffff;
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--rose);
+}
