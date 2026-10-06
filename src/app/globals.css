@@ -213,10 +213,150 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background: var(--rose);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--rose);
+  background: var(--rose-deep);
+}
+
+/* =========================================================
+   LIQUID GLASS & FLOATING NAVBAR
+   ========================================================= */
+
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(233, 221, 225, 0.85);
+  box-shadow: 0 10px 30px -5px rgba(122, 31, 61, 0.07), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+}
+
+.liquid-glass-scrolled {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(220, 203, 209, 0.95);
+  box-shadow: 0 14px 40px -6px rgba(122, 31, 61, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 1);
+}
+
+/* =========================================================
+   ANIMATED BACKGROUND ORBS & PERSPECTIVE GRID
+   ========================================================= */
+
+@keyframes orb-float-1 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(60px, 40px) scale(1.08);
+  }
+
+  66% {
+    transform: translate(-40px, 80px) scale(0.94);
+  }
+}
+
+@keyframes orb-float-2 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(-70px, 60px) scale(0.92);
+  }
+
+  66% {
+    transform: translate(50px, -30px) scale(1.06);
+  }
+}
+
+@keyframes orb-float-3 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  50% {
+    transform: translate(80px, -60px) scale(1.1);
+  }
+}
+
+@keyframes orb-float-4 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  50% {
+    transform: translate(-50px, -40px) scale(0.95);
+  }
+}
+
+@keyframes grid-drift {
+  0% {
+    background-position: 0px 0px;
+  }
+
+  100% {
+    background-position: 48px 48px;
+  }
+}
+
+.animate-orb-1 {
+  animation: orb-float-1 22s ease-in-out infinite;
+}
+
+.animate-orb-2 {
+  animation: orb-float-2 26s ease-in-out infinite;
+}
+
+.animate-orb-3 {
+  animation: orb-float-3 28s ease-in-out infinite;
+}
+
+.animate-orb-4 {
+  animation: orb-float-4 20s ease-in-out infinite;
+}
+
+.perspective-grid {
+  background-image:
+    linear-gradient(to right, rgba(122, 31, 61, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(122, 31, 61, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: grid-drift 40s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .animate-orb-1,
+  .animate-orb-2,
+  .animate-orb-3,
+  .animate-orb-4,
+  .perspective-grid {
+    animation: none !important;
+  }
+}
+
+/* Typing animation cursor blink */
+@keyframes cursor-blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-cursor-blink {
+  animation: cursor-blink 0.9s steps(2, start) infinite;
 }
