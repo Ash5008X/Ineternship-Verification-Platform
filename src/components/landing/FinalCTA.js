@@ -66,7 +66,7 @@ export default function FinalCTA() {
 
         <div className="pt-4">
           <Link
-            href="/home"
+            href="/register"
             className="inline-flex items-center justify-center font-ui text-base font-bold px-8 py-4 rounded-xl bg-primary text-white hover:bg-primary-hover active:scale-[0.98] transition-all shadow-lg group"
           >
             <span>Get Started with InternCheck</span>

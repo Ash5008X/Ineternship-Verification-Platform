@@ -31,9 +31,8 @@ export default function Navbar() {
   return (
     <header className="fixed top-3 sm:top-5 inset-x-0 z-50 px-4 sm:px-6 max-w-6xl mx-auto select-none">
       <div
-        className={`w-full h-16 sm:h-[66px] px-5 sm:px-7 rounded-[18px] transition-all duration-300 flex items-center justify-between ${
-          isScrolled ? "liquid-glass-scrolled shadow-lg" : "liquid-glass shadow-md"
-        }`}
+        className={`w-full h-16 sm:h-[66px] px-5 sm:px-7 rounded-[18px] transition-all duration-300 flex items-center justify-between ${isScrolled ? "liquid-glass-scrolled shadow-lg" : "liquid-glass shadow-md"
+          }`}
       >
         {/* Logo / Brand Wordmark */}
         <Link href="/" className="flex items-center gap-2.5 group">
@@ -73,7 +72,7 @@ export default function Navbar() {
         {/* Right Action: Get Started Button */}
         <div className="flex items-center gap-3">
           <Link
-            href="/home"
+            href="/register"
             className="inline-flex items-center justify-center font-ui text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-primary text-white hover:bg-primary-hover active:scale-[0.98] transition-all shadow-xs"
           >
             Get Started
@@ -116,15 +115,6 @@ export default function Navbar() {
               {link.name}
             </a>
           ))}
-          <div className="pt-2 border-t border-border">
-            <Link
-              href="/home"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block w-full text-center font-ui text-sm font-bold py-2.5 rounded-xl bg-primary text-white hover:bg-primary-hover transition-colors"
-            >
-              Launch Student Dashboard
-            </Link>
-          </div>
         </div>
       )}
     </header>
