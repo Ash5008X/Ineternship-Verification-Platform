@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:api": "newman run postman/InternCheck-API.postman_collection.json -e postman/InternCheck-Local.postman_environment.json"
   },
   "dependencies": {
     "mongoose": "^9.11.2",
@@ -19,6 +20,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "newman": "^6.2.3",
     "tailwindcss": "^4"
   }
 }

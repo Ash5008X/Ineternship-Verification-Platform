@@ -1,0 +1,164 @@
+{
+  "info": {
+    "_postman_id": "580def42-1e3f-4f36-b897-0ab126f86e18",
+    "name": "InternCheckAPI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58242407"
+  },
+  "item": [
+    {
+      "name": "Assess Internship Risk",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Assessment created successfully\", () => {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.assessment).to.exist;",
+              "});",
+              "",
+              "pm.test(\"Risk score is correct\", () => {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response.data.assessment.score).to.eql(43);",
+              "    pm.expect(response.data.assessment.severity).to.eql(\"medium\");",
+              "});",
+              "",
+              "pm.test(\"Assessment has a valid status\", () => {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response.data.assessment.status)",
+              "        .to.eql(\"needs_review\");",
+              "});",
+              "",
+              "pm.test(\"Four verification checks were created\", () => {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response.data.verificationChecks).to.have.lengthOf(4);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "",
+              "if (response.success) {",
+              "    pm.environment.set(",
+              "        \"latestAssessmentId\",",
+              "        response.data.assessment.id",
+              "    );",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"applicationFeeRequired\": false,\n  \"upfrontPaymentRequired\": true,\n  \"requiresManualReview\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/verification/assess/6ad237522b36e6ffc4beeb95",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "verification",
+            "assess",
+            "6ad237522b36e6ffc4beeb95"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Internship Risk Assessment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", () => {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Assessment retrieved successfully\", () => {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.assessment).to.exist;",
+              "});",
+              "",
+              "pm.test(\"Latest assessment is retrieved\", () => {",
+              "    const response = pm.response.json();",
+              "",
+              "    const latestId = pm.environment.get(\"latestAssessmentId\");",
+              "",
+              "    pm.expect(response.data.assessment._id).to.eql(latestId);",
+              "});",
+              "",
+              "pm.test(\"Only four linked verification records are returned\", () => {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response.data.verificationRecords).to.have.lengthOf(4);",
+              "});",
+              "",
+              "pm.test(\"All verification records belong to the latest assessment\", () => {",
+              "    const response = pm.response.json();",
+              "",
+              "    const expectedIds = response.data.assessment.evidenceRefs",
+              "        .filter(ref => ref.sourceType === \"verification\")",
+              "        .map(ref => ref.sourceId);",
+              "",
+              "    const actualIds = response.data.verificationRecords",
+              "        .map(record => record._id);",
+              "",
+              "    pm.expect(actualIds.sort()).to.eql(expectedIds.sort());",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/verification/6ad237522b36e6ffc4beeb95",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "verification",
+            "6ad237522b36e6ffc4beeb95"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
