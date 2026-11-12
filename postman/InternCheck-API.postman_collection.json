@@ -7,158 +7,655 @@
   },
   "item": [
     {
-      "name": "Assess Internship Risk",
-      "event": [
+      "name": "Authentication",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", () => {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Assessment created successfully\", () => {",
-              "    const response = pm.response.json();",
-              "",
-              "    pm.expect(response.success).to.eql(true);",
-              "    pm.expect(response.data.assessment).to.exist;",
-              "});",
-              "",
-              "pm.test(\"Risk score is correct\", () => {",
-              "    const response = pm.response.json();",
-              "",
-              "    pm.expect(response.data.assessment.score).to.eql(43);",
-              "    pm.expect(response.data.assessment.severity).to.eql(\"medium\");",
-              "});",
-              "",
-              "pm.test(\"Assessment has a valid status\", () => {",
-              "    const response = pm.response.json();",
-              "",
-              "    pm.expect(response.data.assessment.status)",
-              "        .to.eql(\"needs_review\");",
-              "});",
-              "",
-              "pm.test(\"Four verification checks were created\", () => {",
-              "    const response = pm.response.json();",
-              "",
-              "    pm.expect(response.data.verificationChecks).to.have.lengthOf(4);",
-              "});",
-              "",
-              "const response = pm.response.json();",
-              "",
-              "if (response.success) {",
-              "    pm.environment.set(",
-              "        \"latestAssessmentId\",",
-              "        response.data.assessment.id",
-              "    );",
-              "}"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"applicationFeeRequired\": false,\n  \"upfrontPaymentRequired\": true,\n  \"requiresManualReview\": false\n}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "UnaurthorizedAcces",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Unauthenticated request returns 401\", function () {\n    pm.response.to.have.status(401);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst body = pm.response.json();\n\npm.test(\"Authentication is rejected\", function () {\n    pm.expect(body.authenticated).to.eql(false);\n});\n\npm.test(\"User data is not returned\", function () {\n    pm.expect(responseBody.user).to.be.oneOf([null, undefined]);\n});"
+                ]
+              }
             }
-          }
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/verification/assess/6ad237522b36e6ffc4beeb95",
-          "host": [
-            "{{baseUrl}}"
           ],
-          "path": [
-            "api",
-            "verification",
-            "assess",
-            "6ad237522b36e6ffc4beeb95"
-          ]
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "StudentRegistration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Registration returns 201 or 409\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([201, 409]);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst response = pm.response.json();\n\npm.test(\"Registration response has a success flag\", function () {\n    pm.expect(response).to.have.property(\"success\");\n    pm.expect(response.success).to.be.a(\"boolean\");\n});\n\nif (pm.response.code === 201) {\n    const user = response.user;\n\n    pm.test(\"Student user object exists\", function () {\n        pm.expect(user).to.be.an(\"object\");\n    });\n\n    pm.test(\"Registered user has student role\", function () {\n        pm.expect(user.role).to.eql(\"student\");\n    });\n\n    pm.test(\"User has an ID and email\", function () {\n        pm.expect(user._id).to.exist;\n        pm.expect(user.email).to.be.a(\"string\");\n    });\n\n    pm.test(\"Password is not exposed\", function () {\n        pm.expect(user).to.not.have.property(\"password\");\n        pm.expect(user).to.not.have.property(\"passwordHash\");\n    });\n\n    pm.test(\"Authentication cookie is set\", function () {\n        const cookie = pm.response.headers.get(\"Set-Cookie\") || \"\";\n        pm.expect(cookie).to.include(\"interncheck_token=\");\n    });\n} else {\n    pm.test(\"Duplicate registration is rejected\", function () {\n        pm.expect(response.success).to.eql(false);\n        pm.expect(response.message).to.be.a(\"string\").and.not.empty;\n    });\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Student 2\",\n  \"email\": \"teststudent3@example.com\",\n  \"password\": \"3TestPass123!\",\n  \"college\": \"Lovely Professional University\",\n  \"degree\": \"B.Tech CSE\",\n  \"graduationYear\": 2028\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register/student",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register",
+                "student"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "RecruiterRegistration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Registration returns 201 or 409\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([201, 409]);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst response = pm.response.json();\n\npm.test(\"Registration response has a success flag\", function () {\n    pm.expect(response).to.have.property(\"success\");\n    pm.expect(response.success).to.be.a(\"boolean\");\n});\n\nif (pm.response.code === 201) {\n    const user = response.user;\n\n    pm.test(\"Recruiter user object exists\", function () {\n        pm.expect(user).to.be.an(\"object\");\n    });\n\n    pm.test(\"Registered user has recruiter role\", function () {\n        pm.expect(user.role).to.eql(\"recruiter\");\n    });\n\n    pm.test(\"User email is correct\", function () {\n        pm.expect(user.email).to.eql(\"2recruiter-test@example.com\");\n    });\n\n    pm.test(\"Password is not exposed\", function () {\n        pm.expect(user).to.not.have.property(\"password\");\n        pm.expect(user).to.not.have.property(\"passwordHash\");\n    });\n\n    pm.test(\"Authentication cookie is set\", function () {\n        const cookie = pm.response.headers.get(\"Set-Cookie\") || \"\";\n        pm.expect(cookie).to.include(\"interncheck_token=\");\n    });\n} else {\n    pm.test(\"Duplicate registration is rejected\", function () {\n        pm.expect(response.success).to.eql(false);\n        pm.expect(response.message).to.be.a(\"string\").and.not.empty;\n    });\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Recruiter 2\",\n  \"workEmail\": \"2recruiter-test@example.com\",\n  \"companyName\": \"InternCheck Test Solutions\",\n  \"companyWebsite\": \"https://example.com\",\n  \"jobTitle\": \"Talent Acquisition Manager\",\n  \"password\": \"2TestPass123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register/recruiter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register",
+                "recruiter"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "StudentLogin_InvalidPassword",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Invalid password returns 401\", function () {\n    pm.response.to.have.status(401);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst response = pm.response.json();\n\npm.test(\"Login is rejected\", function () {\n    pm.expect(response.success).to.eql(false);\n});\n\npm.test(\"Error message is provided\", function () {\n    pm.expect(response.message || response.error).to.be.a(\"string\");\n});\n\npm.test(\"No user data is returned\", function () {\n    pm.expect(response.user).to.be.undefined;\n});\n\npm.test(\"No authentication cookie is issued\", function () {\n    const cookie = pm.response.headers.get(\"Set-Cookie\") || \"\";\n    pm.expect(cookie).to.not.include(\"interncheck_token=\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teststudent2@example.com\",\n \"password\": \"WrongPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "StudentLogin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login successful\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst response = pm.response.json();\n\npm.test(\"Login response confirms authentication\", function () {\n    pm.expect(response.success).to.eql(true);\n});\n\npm.test(\"User object exists\", function () {\n    pm.expect(response.user).to.be.an(\"object\");\n});\n\npm.test(\"User has student role\", function () {\n    pm.expect(response.user.role).to.eql(\"student\");\n});\n\npm.test(\"Password is not exposed\", function () {\n    pm.expect(response.user).to.not.have.property(\"password\");\n    pm.expect(response.user).to.not.have.property(\"passwordHash\");\n});\n\npm.test(\"Authentication cookie is issued\", function () {\n    const cookie = pm.response.headers.get(\"Set-Cookie\") || \"\";\n    pm.expect(cookie).to.include(\"interncheck_token=\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teststudent@example.com\",\n  \"password\": \"TestPass123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "CurrentUser",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst response = pm.response.json();\n\npm.test(\"User is authenticated\", function () {\n    pm.expect(response.authenticated).to.eql(true);\n});\n\npm.test(\"User object exists\", function () {\n    pm.expect(response.user).to.be.an(\"object\");\n});\n\npm.test(\"User has a valid role\", function () {\n    pm.expect([\"student\", \"recruiter\"]).to.include(response.user.role);\n});\n\npm.test(\"Password is not exposed\", function () {\n    pm.expect(response.user).to.not.have.property(\"password\");\n    pm.expect(response.user).to.not.have.property(\"passwordHash\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
         }
-      },
-      "response": []
+      ]
     },
     {
-      "name": "Get Internship Risk Assessment",
-      "event": [
+      "name": "Applications",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", () => {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Assessment retrieved successfully\", () => {",
-              "    const response = pm.response.json();",
-              "",
-              "    pm.expect(response.success).to.eql(true);",
-              "    pm.expect(response.data.assessment).to.exist;",
-              "});",
-              "",
-              "pm.test(\"Latest assessment is retrieved\", () => {",
-              "    const response = pm.response.json();",
-              "",
-              "    const latestId = pm.environment.get(\"latestAssessmentId\");",
-              "",
-              "    pm.expect(response.data.assessment._id).to.eql(latestId);",
-              "});",
-              "",
-              "pm.test(\"Only four linked verification records are returned\", () => {",
-              "    const response = pm.response.json();",
-              "",
-              "    pm.expect(response.data.verificationRecords).to.have.lengthOf(4);",
-              "});",
-              "",
-              "pm.test(\"All verification records belong to the latest assessment\", () => {",
-              "    const response = pm.response.json();",
-              "",
-              "    const expectedIds = response.data.assessment.evidenceRefs",
-              "        .filter(ref => ref.sourceType === \"verification\")",
-              "        .map(ref => ref.sourceId);",
-              "",
-              "    const actualIds = response.data.verificationRecords",
-              "        .map(record => record._id);",
-              "",
-              "    pm.expect(actualIds.sort()).to.eql(expectedIds.sort());",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{baseUrl}}/api/verification/6ad237522b36e6ffc4beeb95",
-          "host": [
-            "{{baseUrl}}"
+          "name": "GetApplications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst response = pm.response.json();\n\npm.test(\"Applications retrieved successfully\", function () {\n    pm.expect(response.success).to.eql(true);\n});\n\npm.test(\"Applications data is an array\", function () {\n    pm.expect(response.data).to.be.an(\"array\");\n});\n\npm.test(\"Each application has required fields\", function () {\n    response.data.forEach(function (application) {\n        pm.expect(application._id).to.exist;\n        pm.expect(application.status).to.exist;\n        pm.expect(application.applicationMethod).to.exist;\n    });\n});\n\npm.test(\"Application statuses are valid\", function () {\n    const validStatuses = [\n        \"saved\",\n        \"applied\",\n        \"interviewing\",\n        \"offered\",\n        \"rejected\",\n        \"withdrawn\"\n    ];\n\n    response.data.forEach(function (application) {\n        pm.expect(validStatuses).to.include(application.status);\n    });\n});"
+                ]
+              }
+            }
           ],
-          "path": [
-            "api",
-            "verification",
-            "6ad237522b36e6ffc4beeb95"
-          ]
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "CreateApplications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Application returns a valid status\", function () {\n    pm.expect(pm.response.code).to.be.oneOf([201, 409]);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst response = pm.response.json();\n\nif (pm.response.code === 201) {\n    pm.test(\"Application created successfully\", function () {\n        pm.expect(response.success).to.eql(true);\n        pm.expect(response.data).to.be.an(\"object\");\n        pm.expect(response.data._id).to.exist;\n        pm.expect(response.data.status).to.eql(\"applied\");\n        pm.expect(response.data.applicationMethod).to.eql(\"external\");\n\n        pm.environment.set(\"createdApplicationId\", response.data._id);\n    });\n} else {\n    pm.test(\"Duplicate application is handled correctly\", function () {\n        pm.expect(response.success).to.eql(false);\n        pm.expect(response.message).to.include(\"already\");\n    });\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"internshipId\": \"{{testInternshipId}}\",\n    \"confirmExternal\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          },
+          "response": []
         }
-      },
-      "response": []
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "GetNotifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is successful\", () => {\n    const json = pm.response.json();\n    pm.expect(json.success).to.eql(true);\n    pm.expect(json.data).to.be.an(\"array\");\n});\n\npm.test(\"Unread count is valid\", () => {\n    const json = pm.response.json();\n    pm.expect(json.unreadCount).to.be.a(\"number\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "MarkAllAsRead",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Notifications marked as read\", () => {\n    pm.response.to.have.status(200);\n\n    const json = pm.response.json();\n\n    pm.expect(json.success).to.eql(true);\n    pm.expect(json.unreadCount).to.eql(0);\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Verification",
+      "item": [
+        {
+          "name": "Assess Internship Risk",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Assessment created successfully\", () => {",
+                  "    const response = pm.response.json();",
+                  "",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response.data.assessment).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Risk score is correct\", () => {",
+                  "    const response = pm.response.json();",
+                  "",
+                  "    pm.expect(response.data.assessment.score).to.eql(43);",
+                  "    pm.expect(response.data.assessment.severity).to.eql(\"medium\");",
+                  "});",
+                  "",
+                  "pm.test(\"Assessment has a valid status\", () => {",
+                  "    const response = pm.response.json();",
+                  "",
+                  "    pm.expect(response.data.assessment.status)",
+                  "        .to.eql(\"needs_review\");",
+                  "});",
+                  "",
+                  "pm.test(\"Four verification checks were created\", () => {",
+                  "    const response = pm.response.json();",
+                  "",
+                  "    pm.expect(response.data.verificationChecks).to.have.lengthOf(4);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.success) {",
+                  "    pm.environment.set(",
+                  "        \"latestAssessmentId\",",
+                  "        response.data.assessment.id",
+                  "    );",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationFeeRequired\": false,\n  \"upfrontPaymentRequired\": true,\n  \"requiresManualReview\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verification/assess/6ad237522b36e6ffc4beeb95",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "verification",
+                "assess",
+                "6ad237522b36e6ffc4beeb95"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Internship Risk Assessment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Assessment retrieved successfully\", () => {",
+                  "    const response = pm.response.json();",
+                  "",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response.data.assessment).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Latest assessment is retrieved\", () => {",
+                  "    const response = pm.response.json();",
+                  "",
+                  "    const latestId = pm.environment.get(\"latestAssessmentId\");",
+                  "",
+                  "    pm.expect(response.data.assessment._id).to.eql(latestId);",
+                  "});",
+                  "",
+                  "pm.test(\"Only four linked verification records are returned\", () => {",
+                  "    const response = pm.response.json();",
+                  "",
+                  "    pm.expect(response.data.verificationRecords).to.have.lengthOf(4);",
+                  "});",
+                  "",
+                  "pm.test(\"All verification records belong to the latest assessment\", () => {",
+                  "    const response = pm.response.json();",
+                  "",
+                  "    const expectedIds = response.data.assessment.evidenceRefs",
+                  "        .filter(ref => ref.sourceType === \"verification\")",
+                  "        .map(ref => ref.sourceId);",
+                  "",
+                  "    const actualIds = response.data.verificationRecords",
+                  "        .map(record => record._id);",
+                  "",
+                  "    pm.expect(actualIds.sort()).to.eql(expectedIds.sort());",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/verification/6ad237522b36e6ffc4beeb95",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "verification",
+                "6ad237522b36e6ffc4beeb95"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recruiter Authentication",
+      "item": [
+        {
+          "name": "RecriuterLogin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Recruiter login successful\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst response = pm.response.json();\n\npm.test(\"Login response confirms authentication\", function () {\n    pm.expect(response.success).to.eql(true);\n});\n\npm.test(\"Recruiter user object exists\", function () {\n    const user = response.user || response.data?.user || response.data;\n    pm.expect(user).to.be.an(\"object\");\n    pm.expect(user.role).to.eql(\"recruiter\");\n});\n\npm.test(\"Password is not exposed\", function () {\n    const user = response.user || response.data?.user || response.data;\n    pm.expect(user).to.not.have.property(\"password\");\n    pm.expect(user).to.not.have.property(\"passwordHash\");\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"recruiter-test@example.com\",\n  \"password\": \"TestPass123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Session Management",
+      "item": [
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Logout successful\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Logout response confirms success\", function () {\n    const response = pm.response.json();\n    pm.expect(response.success).to.eql(true);\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "UnauthorizedAccess_AfterLogout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Unauthenticated request returns 401\", function () {\n    pm.response.to.have.status(401);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst body = pm.response.json();\n\npm.test(\"Authentication is rejected\", function () {\n    pm.expect(body.authenticated).to.eql(false);\n});\n\npm.test(\"User data is not returned\", function () {\n    pm.expect(body.user).to.be.oneOf([null, undefined]);\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

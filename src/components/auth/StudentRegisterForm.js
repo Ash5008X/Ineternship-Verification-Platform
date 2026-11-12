@@ -7,6 +7,7 @@ export default function RegisterForm({ onToggle, onSwitchToRecruiter }) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const currentYear = new Date().getFullYear();
     const graduationYears = Array.from(
@@ -14,10 +15,12 @@ export default function RegisterForm({ onToggle, onSwitchToRecruiter }) {
         (_, index) => currentYear + index
     );
 
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
 
-        const formData = new FormData(event.currentTarget);
+        const form = event.currentTarget;
+        const formData = new FormData(form);
+
         const password = formData.get("password");
         const confirmPassword = formData.get("confirmPassword");
 
@@ -31,7 +34,44 @@ export default function RegisterForm({ onToggle, onSwitchToRecruiter }) {
             return;
         }
 
-        setMessage("Registration API will be connected in the next step.");
+        if (!formData.get("terms")) {
+            setMessage("Please accept the terms and privacy policy.");
+            return;
+        }
+
+        setLoading(true);
+        setMessage("");
+
+        try {
+            const response = await fetch("/api/auth/register/student", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: formData.get("name"),
+                    email: formData.get("email"),
+                    college: formData.get("college"),
+                    degree: formData.get("degree"),
+                    graduationYear: formData.get("graduationYear"),
+                    password,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Registration failed.");
+            }
+
+            setMessage("Account created successfully. Redirecting...");
+
+            window.location.href = "/home";
+        } catch (error) {
+            setMessage(error.message || "Something went wrong.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -183,8 +223,12 @@ export default function RegisterForm({ onToggle, onSwitchToRecruiter }) {
                         </p>
                     )}
 
-                    <button className="auth-submit-btn" type="submit">
-                        <span>Create account</span>
+                    <button
+                        className="auth-submit-btn"
+                        type="submit"
+                        disabled={loading}
+                    >
+                        <span>{loading ? "Creating account..." : "Create account"}</span>
                         <span className="auth-btn-arrow" aria-hidden="true">
                             ↗
                         </span>

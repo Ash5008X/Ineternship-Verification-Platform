@@ -1,23 +1,80 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function LoginForm({ onToggle }) {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true);
     const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState("");
 
-    function handleSubmit(event) {
+    useEffect(() => {
+        const savedEmail = localStorage.getItem("interncheck_saved_email");
+
+        if (savedEmail) {
+            setEmail(savedEmail);
+        }
+    }, []);
+
+    async function handleSubmit(event) {
         event.preventDefault();
-        setMessage("Login API will be connected in the next step.");
+
+        const form = event.currentTarget;
+        const formData = new FormData(form);
+
+        setLoading(true);
+        setMessage("");
+
+        try {
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email: formData.get("email"),
+                    password: formData.get("password"),
+                    rememberMe,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Login failed.");
+            }
+
+            if (rememberMe) {
+                localStorage.setItem(
+                    "interncheck_saved_email",
+                    formData.get("email").trim()
+                );
+            } else {
+                localStorage.removeItem("interncheck_saved_email");
+            }
+
+            setMessage("Login successful. Redirecting...");
+
+            window.location.href =
+                result.user.role === "recruiter"
+                    ? "/recruiter/dashboard"
+                    : "/home";
+        } catch (error) {
+            setMessage(error.message || "Unable to log in.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
         <div className="auth-form-panel">
             <div className="auth-form-content">
                 <p className="auth-form-kicker">GOOD TO SEE YOU AGAIN</p>
+
                 <h2 className="auth-form-title">Sign in.</h2>
+
                 <p className="auth-form-subtitle">
                     Pick up where your internship journey left off.
                 </p>
@@ -25,18 +82,22 @@ export default function LoginForm({ onToggle }) {
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <label className="auth-field">
                         <span className="auth-label">Email address</span>
+
                         <input
                             className="auth-input"
                             type="email"
                             name="email"
                             placeholder="you@college.edu"
                             autoComplete="email"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
                             required
                         />
                     </label>
 
                     <label className="auth-field">
                         <span className="auth-label">Password</span>
+
                         <span className="auth-password-wrap">
                             <input
                                 className="auth-input"
@@ -46,6 +107,7 @@ export default function LoginForm({ onToggle }) {
                                 autoComplete="current-password"
                                 required
                             />
+
                             <button
                                 className="auth-password-toggle"
                                 type="button"
@@ -62,7 +124,9 @@ export default function LoginForm({ onToggle }) {
                             <input
                                 type="checkbox"
                                 checked={rememberMe}
-                                onChange={(event) => setRememberMe(event.target.checked)}
+                                onChange={(event) =>
+                                    setRememberMe(event.target.checked)
+                                }
                             />
                             <span>Remember me</span>
                         </label>
@@ -84,8 +148,12 @@ export default function LoginForm({ onToggle }) {
                         </p>
                     )}
 
-                    <button className="auth-submit-btn" type="submit">
-                        <span>Sign in</span>
+                    <button
+                        className="auth-submit-btn"
+                        type="submit"
+                        disabled={loading}
+                    >
+                        <span>{loading ? "Signing in..." : "Sign in"}</span>
                         <span className="auth-btn-arrow" aria-hidden="true">
                             ↗
                         </span>
@@ -95,7 +163,11 @@ export default function LoginForm({ onToggle }) {
                 <div className="auth-toggle-link">
                     <p>
                         New to InternCheck?{" "}
-                        <button className="auth-toggle-btn" type="button" onClick={onToggle}>
+                        <button
+                            className="auth-toggle-btn"
+                            type="button"
+                            onClick={onToggle}
+                        >
                             Create an account
                         </button>
                     </p>

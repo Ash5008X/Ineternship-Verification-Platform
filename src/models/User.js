@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
 
         role: {
             type: String,
-            enum: ["student", "reviewer", "admin"],
+            enum: ["student", "recruiter"],
             default: "student",
             required: true,
         },
@@ -47,6 +47,14 @@ const userSchema = new mongoose.Schema(
             linkedinUrl: { type: String, trim: true, maxlength: 500 },
         },
 
+        recruiterProfile: {
+            jobTitle: {
+                type: String,
+                trim: true,
+                maxlength: 120,
+            },
+        },
+
         isEmailVerified: {
             type: Boolean,
             default: false,
@@ -54,8 +62,8 @@ const userSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["pending", "active", "suspended"],
-            default: "pending",
+            enum: ["active", "suspended"],
+            default: "active",
         },
     },
     { timestamps: true }
