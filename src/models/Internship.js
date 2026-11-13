@@ -121,7 +121,7 @@ const internshipSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["draft", "pending", "active", "expired", "withdrawn"],
+            enum: [ "draft", "pending","active","rejected","expired","withdrawn"],
             default: "pending",
         },
     },

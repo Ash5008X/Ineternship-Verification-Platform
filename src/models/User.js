@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
 
         role: {
             type: String,
-            enum: ["student", "reviewer", "admin"],
+            enum: ["student", "recruiter", "reviewer", "admin"],
             default: "student",
             required: true,
         },
@@ -45,6 +45,14 @@ const userSchema = new mongoose.Schema(
             bio: { type: String, trim: true, maxlength: 1000 },
             skills: [{ type: String, trim: true, maxlength: 80 }],
             linkedinUrl: { type: String, trim: true, maxlength: 500 },
+        },
+
+        recruiterProfile: {
+            jobTitle: {
+                type: String,
+                trim: true,
+                maxlength: 100,
+            },
         },
 
         isEmailVerified: {
