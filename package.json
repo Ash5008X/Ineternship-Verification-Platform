@@ -10,20 +10,20 @@
     "test:api": "newman run postman/InternCheck-API.postman_collection.json -e postman/InternCheck-Local.postman_environment.json"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.3.5",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.11.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.2",
     "next": "16.3.5",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.5",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
-    "newman": "^6.2.3",
-    "tailwindcss": "^4"
+    "newman": "^6.2.3"
   }
 }
