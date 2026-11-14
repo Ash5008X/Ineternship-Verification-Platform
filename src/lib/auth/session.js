@@ -1,3 +1,4 @@
+
 import { cookies } from "next/headers";
 import { connectDB } from "@/config/db";
 import User from "@/models/User";
@@ -10,6 +11,7 @@ export async function getCurrentUser() {
     if (!token) return null;
 
     const payload = verifyAuthToken(token);
+
     if (!payload?.sub) return null;
 
     await connectDB();
@@ -18,8 +20,13 @@ export async function getCurrentUser() {
         .select("-passwordHash")
         .lean();
 
-    if (!user || user.status !== "active") return null;
-    if (user.role !== payload.role) return null;
+    if (!user || user.status !== "active") {
+        return null;
+    }
+
+    if (user.role !== payload.role) {
+        return null;
+    }
 
     return user;
 }
@@ -34,17 +41,37 @@ export async function requireRole(allowedRoles = []) {
     try {
         user = await getCurrentUser();
     } catch (error) {
-        console.error("Authentication check failed:", error);
-        return { authorized: false, status: 500, user: null };
+        console.error("Authentication session error:", error);
+
+        return {
+            authorized: false,
+            status: 500,
+            user: null,
+        };
     }
 
     if (!user) {
-        return { authorized: false, status: 401, user: null };
+        return {
+            authorized: false,
+            status: 401,
+            user: null,
+        };
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-        return { authorized: false, status: 403, user: null };
+    if (
+        allowedRoles.length > 0 &&
+        !allowedRoles.includes(user.role)
+    ) {
+        return {
+            authorized: false,
+            status: 403,
+            user: null,
+        };
     }
 
-    return { authorized: true, status: 200, user };
+    return {
+        authorized: true,
+        status: 200,
+        user,
+    };
 }

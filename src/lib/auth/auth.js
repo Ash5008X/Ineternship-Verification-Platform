@@ -1,3 +1,4 @@
+
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -8,7 +9,10 @@ if (!JWT_SECRET) {
 
 export function createAuthToken(user) {
     return jwt.sign(
-        { sub: user._id.toString(), role: user.role },
+        {
+            sub: user._id.toString(),
+            role: user.role,
+        },
         JWT_SECRET,
         {
             expiresIn: process.env.JWT_EXPIRES_IN || "7d",
@@ -19,7 +23,9 @@ export function createAuthToken(user) {
 
 export function verifyAuthToken(token) {
     try {
-        return jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
+        return jwt.verify(token, JWT_SECRET, {
+            algorithms: ["HS256"],
+        });
     } catch {
         return null;
     }

@@ -7,23 +7,20 @@ export default function AuthHeader({
 }) {
     const isStudentRegistration = !isLogin && accountType === "student";
 
-    const ctaLabel =
-        isLogin || isStudentRegistration
-            ? "Register as a recruiter"
-            : "Register as a student";
+    const ctaLabel = isStudentRegistration
+        ? "Register as a recruiter"
+        : "Register as a student";
 
-    const ctaHeading =
-        isLogin || isStudentRegistration
-            ? "HIRING TALENT?"
-            : "LOOKING FOR INTERNSHIPS?";
+    const ctaHeading = isStudentRegistration
+        ? "HIRING TALENT?"
+        : "LOOKING FOR INTERNSHIPS?";
 
-    const ctaDescription =
-        isLogin || isStudentRegistration
-            ? "Connect with students and post internship opportunities."
-            : "Discover opportunities and learn from real student experiences.";
+    const ctaDescription = isStudentRegistration
+        ? "Connect with students and post internship opportunities."
+        : "Discover opportunities and learn from real student experiences.";
 
     const handleCtaClick = () => {
-        if (isLogin || isStudentRegistration) {
+        if (isStudentRegistration) {
             onRecruiterClick();
         } else {
             onStudentClick();
@@ -78,23 +75,17 @@ export default function AuthHeader({
                 <div className="auth-stats auth-welcome-stagger">
                     <div className="auth-stat-item">
                         <span className="auth-stat-icon">✓</span>
-
                         <div className="auth-stat-content">
                             <strong>Check before you commit</strong>
-                            <span>
-                                Make informed internship decisions.
-                            </span>
+                            <span>Make informed internship decisions.</span>
                         </div>
                     </div>
 
                     <div className="auth-stat-item">
                         <span className="auth-stat-icon">↗</span>
-
                         <div className="auth-stat-content">
                             <strong>Learn from real experiences</strong>
-                            <span>
-                                Use student insights to guide your next step.
-                            </span>
+                            <span>Use student insights to guide your next step.</span>
                         </div>
                     </div>
                 </div>
@@ -102,24 +93,26 @@ export default function AuthHeader({
                 <div className="auth-welcome-footer">
                     <p>A little research can save a lot of regret.</p>
 
-                    <div className="auth-recruiter-cta">
-                        <span className="auth-recruiter-label">
-                            {ctaHeading}
-                        </span>
+                    {!isLogin && (
+                        <div className="auth-recruiter-cta">
+                            <span className="auth-recruiter-label">
+                                {ctaHeading}
+                            </span>
 
-                        <button
-                            type="button"
-                            className="auth-recruiter-button"
-                            onClick={handleCtaClick}
-                        >
-                            {ctaLabel}
-                            <span aria-hidden="true">↗</span>
-                        </button>
+                            <button
+                                type="button"
+                                className="auth-recruiter-button"
+                                onClick={handleCtaClick}
+                            >
+                                {ctaLabel}
+                                <span aria-hidden="true">↗</span>
+                            </button>
 
-                        <span className="auth-recruiter-description">
-                            {ctaDescription}
-                        </span>
-                    </div>
+                            <span className="auth-recruiter-description">
+                                {ctaDescription}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

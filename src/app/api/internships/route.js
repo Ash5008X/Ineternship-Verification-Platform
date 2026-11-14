@@ -4,6 +4,9 @@ import mongoose from "mongoose";
 
 import { connectDB } from "@/config/db";
 import Internship from "@/models/Internship";
+import Company from "@/models/Company";
+import RiskAssessment from "@/models/RiskAssessment";
+
 import { requireRecruiter } from "@/lib/auth/requireRecruiter";
 import { getRecruiterCompany } from "@/lib/auth/getRecruiterCompany";
 
@@ -23,6 +26,9 @@ const ALLOWED_FIELDS = [
     "applicationDeadline",
 ];
 
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function validateNestedFields(body) {
     const objectFields = [
@@ -62,7 +68,6 @@ function validateNestedFields(body) {
     return true;
 }
 
-
 function validateWebsite(value) {
     if (typeof value !== "string") return false;
 
@@ -80,6 +85,22 @@ function validateWebsite(value) {
     }
 }
 
+function emptyResponse(page, limit) {
+    return NextResponse.json({
+        success: true,
+        data: [],
+        pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: page > 1,
+        },
+    });
+}
+
+// CREATE INTERNSHIP
 export async function POST(request) {
     try {
         await connectDB();
@@ -127,13 +148,15 @@ export async function POST(request) {
             );
         }
 
-        // Ownership and status fields are always controlled by the server.
-        if (
-            Object.hasOwn(body, "companyId") ||
-            Object.hasOwn(body, "createdBy") ||
-            Object.hasOwn(body, "status") ||
-            Object.hasOwn(body, "source")
-        ) {
+        // Ownership and status fields are controlled by the server.
+        const restrictedFields = [
+            "companyId",
+            "createdBy",
+            "status",
+            "source",
+        ];
+
+        if (restrictedFields.some((field) => Object.hasOwn(body, field))) {
             return NextResponse.json(
                 {
                     success: false,
@@ -149,11 +172,13 @@ export async function POST(request) {
 
         if (unknownFields.length > 0) {
             return NextResponse.json(
-                { success: false, message: "Request contains unsupported fields." },
+                {
+                    success: false,
+                    message: "Request contains unsupported fields.",
+                },
                 { status: 400 }
             );
         }
-
 
         if (!validateNestedFields(body)) {
             return NextResponse.json(
@@ -165,14 +190,18 @@ export async function POST(request) {
             );
         }
 
-
-        if (body.stipend !== undefined && body.stipend !== null) {
+        // Validate stipend.
+        if (body.stipend != null) {
             const { amount, currency, period } = body.stipend;
 
             if (
                 amount !== undefined &&
                 amount !== null &&
-                (typeof amount !== "number" || !Number.isFinite(amount) || amount < 0)
+                (
+                    typeof amount !== "number" ||
+                    !Number.isFinite(amount) ||
+                    amount < 0
+                )
             ) {
                 return NextResponse.json(
                     { success: false, message: "Invalid stipend amount." },
@@ -182,7 +211,10 @@ export async function POST(request) {
 
             if (
                 currency !== undefined &&
-                (typeof currency !== "string" || !/^[A-Z]{3}$/.test(currency))
+                (
+                    typeof currency !== "string" ||
+                    !/^[A-Z]{3}$/.test(currency)
+                )
             ) {
                 return NextResponse.json(
                     { success: false, message: "Invalid stipend currency." },
@@ -192,7 +224,14 @@ export async function POST(request) {
 
             if (
                 period !== undefined &&
-                !["hourly", "weekly", "monthly", "total", "unpaid", "unspecified"].includes(period)
+                ![
+                    "hourly",
+                    "weekly",
+                    "monthly",
+                    "total",
+                    "unpaid",
+                    "unspecified",
+                ].includes(period)
             ) {
                 return NextResponse.json(
                     { success: false, message: "Invalid stipend period." },
@@ -201,14 +240,18 @@ export async function POST(request) {
             }
         }
 
-
-        if (body.duration !== undefined && body.duration !== null) {
+        // Validate duration.
+        if (body.duration != null) {
             const { value, unit } = body.duration;
 
             if (
                 value !== undefined &&
                 value !== null &&
-                (typeof value !== "number" || !Number.isFinite(value) || value < 1)
+                (
+                    typeof value !== "number" ||
+                    !Number.isFinite(value) ||
+                    value < 1
+                )
             ) {
                 return NextResponse.json(
                     { success: false, message: "Invalid internship duration." },
@@ -228,7 +271,7 @@ export async function POST(request) {
             }
         }
 
-
+        // Validate work mode.
         if (
             body.workMode !== undefined &&
             !["remote", "hybrid", "onsite", "unspecified"].includes(body.workMode)
@@ -239,30 +282,7 @@ export async function POST(request) {
             );
         }
 
-
-        if (body.applicationDeadline !== undefined && body.applicationDeadline !== null) {
-            const deadline = new Date(body.applicationDeadline);
-
-            if (
-                typeof body.applicationDeadline !== "string" ||
-                !Number.isFinite(deadline.getTime())
-            ) {
-                return NextResponse.json(
-                    { success: false, message: "Invalid application deadline." },
-                    { status: 400 }
-                );
-            }
-        }
-
-
-        const title = typeof body.title === "string" ? body.title.trim() : "";
-        const description =
-            typeof body.description === "string"
-                ? body.description.trim()
-                : "";
-        const category =
-            typeof body.category === "string" ? body.category.trim() : "";
-
+        // Validate application method.
         const applicationMethod = body.applicationMethod ?? "external";
 
         if (!["external", "internal"].includes(applicationMethod)) {
@@ -290,7 +310,7 @@ export async function POST(request) {
 
         if (
             applicationMethod === "internal" &&
-            body.applicationUrl &&
+            body.applicationUrl != null &&
             body.applicationUrl !== ""
         ) {
             return NextResponse.json(
@@ -302,59 +322,11 @@ export async function POST(request) {
             );
         }
 
-
-        if (!title || title.length > 200) {
-            return NextResponse.json(
-                { success: false, message: "A valid internship title is required." },
-                { status: 400 }
-            );
-        }
-
-        if (!description || description.length > 20000) {
-            return NextResponse.json(
-                { success: false, message: "A valid internship description is required." },
-                { status: 400 }
-            );
-        }
-
-        if (!category || category.length > 100) {
-            return NextResponse.json(
-                { success: false, message: "A valid internship category is required." },
-                { status: 400 }
-            );
-        }
-
-
+        // Validate application deadline.
         if (
-            body.applicationMethod === "external" &&
-            !body.applicationUrl
+            body.applicationDeadline !== undefined &&
+            body.applicationDeadline !== null
         ) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: "An application URL is required for external applications.",
-                },
-                { status: 400 }
-            );
-        }
-
-
-        if (
-            body.applicationMethod === "internal" &&
-            body.applicationUrl
-        ) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: "Application URL should not be provided for internal applications.",
-                },
-                { status: 400 }
-            );
-        }
-
-
-
-        if (body.applicationDeadline !== undefined && body.applicationDeadline !== null) {
             const deadline = new Date(body.applicationDeadline);
 
             if (
@@ -368,16 +340,43 @@ export async function POST(request) {
             }
         }
 
+        // Validate required text fields.
+        const title =
+            typeof body.title === "string" ? body.title.trim() : "";
 
+        const description =
+            typeof body.description === "string"
+                ? body.description.trim()
+                : "";
 
-        if (
-            body.applicationUrl !== undefined &&
-            body.applicationUrl !== null &&
-            body.applicationUrl !== "" &&
-            !validateWebsite(body.applicationUrl)
-        ) {
+        const category =
+            typeof body.category === "string"
+                ? body.category.trim()
+                : "";
+
+        if (!title || title.length > 200) {
             return NextResponse.json(
-                { success: false, message: "Invalid application URL." },
+                { success: false, message: "A valid internship title is required." },
+                { status: 400 }
+            );
+        }
+
+        if (!description || description.length > 20000) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "A valid internship description is required.",
+                },
+                { status: 400 }
+            );
+        }
+
+        if (!category || category.length > 100) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "A valid internship category is required.",
+                },
                 { status: 400 }
             );
         }
@@ -387,6 +386,11 @@ export async function POST(request) {
             title,
             description,
             category,
+            applicationMethod,
+            applicationUrl:
+                applicationMethod === "internal"
+                    ? undefined
+                    : body.applicationUrl,
             companyId: company._id,
             createdBy: user._id,
             status: "draft",
@@ -409,7 +413,10 @@ export async function POST(request) {
             error instanceof mongoose.Error.CastError
         ) {
             return NextResponse.json(
-                { success: false, message: "Invalid internship information." },
+                {
+                    success: false,
+                    message: "Invalid internship information.",
+                },
                 { status: 400 }
             );
         }
@@ -421,8 +428,7 @@ export async function POST(request) {
     }
 }
 
-
-
+// PUBLIC INTERNSHIP LISTING
 export async function GET(request) {
     try {
         await connectDB();
@@ -430,7 +436,7 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
 
         const page = Number(searchParams.get("page") || 1);
-        const limit = Number(searchParams.get("limit") || 10);
+        const limit = Number(searchParams.get("limit") || 12);
 
         if (
             !Number.isInteger(page) ||
@@ -440,72 +446,96 @@ export async function GET(request) {
             limit > 100
         ) {
             return NextResponse.json(
-                { success: false, message: "Invalid pagination parameters." },
+                {
+                    success: false,
+                    message: "Invalid pagination parameters.",
+                },
                 { status: 400 }
             );
         }
 
-        const filter = {
-            status: "active",
-            $and: [
-                {
-                    $or: [
-                        { applicationDeadline: null },
-                        { applicationDeadline: { $gte: new Date() } },
-                    ],
-                },
-            ],
-        };
+        // Support both the existing q parameter and ash's search parameter.
+        const search =
+            searchParams.get("search")?.trim() ||
+            searchParams.get("q")?.trim() ||
+            "";
 
-        const q = searchParams.get("q")?.trim();
         const category = searchParams.get("category")?.trim();
+        const location = searchParams.get("location")?.trim();
         const city = searchParams.get("city")?.trim();
         const state = searchParams.get("state")?.trim();
         const country = searchParams.get("country")?.trim();
-        const workMode = searchParams.get("workMode")?.trim();
-        const skills = searchParams.get("skills")
-            ?.split(",")
-            .map((skill) => skill.trim())
-            .filter(Boolean);
+
+        const workMode = searchParams.get("workMode");
+        const verification = searchParams.get("verification");
+        const risk = searchParams.get("risk");
 
         const minStipend = searchParams.get("minStipend");
         const maxStipend = searchParams.get("maxStipend");
 
-        const escapeRegex = (value) =>
-            value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const durationMin = searchParams.get("durationMin");
+        const durationMax = searchParams.get("durationMax");
+        const durationUnit = searchParams.get("durationUnit");
 
-        if (q) {
-            const searchRegex = new RegExp(escapeRegex(q), "i");
+        const sort = searchParams.get("sort") || "newest";
 
-            filter.$and.push({
+        const filters = [
+            { status: "active" },
+            {
                 $or: [
-                    { title: searchRegex },
-                    { description: searchRegex },
-                    { category: searchRegex },
-                    { requiredSkills: searchRegex },
-                    { preferredSkills: searchRegex },
+                    { applicationDeadline: null },
+                    { applicationDeadline: { $gte: new Date() } },
                 ],
+            },
+        ];
+
+        // Search internship fields and company name.
+        if (search) {
+            const expression = new RegExp(escapeRegex(search), "i");
+
+            const matchingCompanies = await Company.find({
+                name: expression,
+            }).select("_id").lean();
+
+            const companyIds = matchingCompanies.map(
+                (company) => company._id
+            );
+
+            const searchConditions = [
+                { title: expression },
+                { description: expression },
+                { category: expression },
+                { requiredSkills: expression },
+                { preferredSkills: expression },
+            ];
+
+            if (companyIds.length) {
+                searchConditions.push({
+                    companyId: { $in: companyIds },
+                });
+            }
+
+            filters.push({ $or: searchConditions });
+        }
+
+        // Category filter.
+        if (category) {
+            filters.push({
+                category: new RegExp(
+                    `^${escapeRegex(category)}$`,
+                    "i"
+                ),
             });
         }
 
-        if (category) {
-            filter.category = new RegExp(`^${escapeRegex(category)}$`, "i");
-        }
-
-        if (city) {
-            filter["location.city"] = new RegExp(escapeRegex(city), "i");
-        }
-
-        if (state) {
-            filter["location.state"] = new RegExp(escapeRegex(state), "i");
-        }
-
-        if (country) {
-            filter["location.country"] = new RegExp(escapeRegex(country), "i");
-        }
-
-        if (workMode) {
-            const allowedModes = ["remote", "hybrid", "onsite", "unspecified"];
+        // Work mode filter.
+        if (workMode && workMode !== "all") {
+            const allowedModes = [
+                "remote",
+                "hybrid",
+                "onsite",
+                "unspecified",
+            ];
 
             if (!allowedModes.includes(workMode)) {
                 return NextResponse.json(
@@ -514,28 +544,44 @@ export async function GET(request) {
                 );
             }
 
-            filter.workMode = workMode;
+            filters.push({ workMode });
         }
 
-        if (skills?.length) {
-            if (
-                skills.length > 20 ||
-                skills.some((skill) => skill.length > 80)
-            ) {
-                return NextResponse.json(
-                    { success: false, message: "Invalid skills filter." },
-                    { status: 400 }
-                );
+        // Location filters.
+        const locationExpression = location
+            ? new RegExp(escapeRegex(location), "i")
+            : null;
+
+        if (locationExpression) {
+            filters.push({
+                $or: [
+                    { "location.city": locationExpression },
+                    { "location.state": locationExpression },
+                    { "location.country": locationExpression },
+                ],
+            });
+        }
+
+        for (const [field, value] of [
+            ["city", city],
+            ["state", state],
+            ["country", country],
+        ]) {
+            if (value) {
+                filters.push({
+                    [`location.${field}`]: new RegExp(
+                        escapeRegex(value),
+                        "i"
+                    ),
+                });
             }
-
-            filter.requiredSkills = {
-                $in: skills.map(
-                    (skill) => new RegExp(`^${escapeRegex(skill)}$`, "i")
-                ),
-            };
         }
 
-        if (minStipend !== null || maxStipend !== null) {
+        // Stipend filters.
+        if (
+            minStipend !== null ||
+            maxStipend !== null
+        ) {
             const stipendFilter = {};
 
             if (minStipend !== null) {
@@ -543,7 +589,10 @@ export async function GET(request) {
 
                 if (!Number.isFinite(value) || value < 0) {
                     return NextResponse.json(
-                        { success: false, message: "Invalid minimum stipend." },
+                        {
+                            success: false,
+                            message: "Invalid minimum stipend.",
+                        },
                         { status: 400 }
                     );
                 }
@@ -556,7 +605,10 @@ export async function GET(request) {
 
                 if (!Number.isFinite(value) || value < 0) {
                     return NextResponse.json(
-                        { success: false, message: "Invalid maximum stipend." },
+                        {
+                            success: false,
+                            message: "Invalid maximum stipend.",
+                        },
                         { status: 400 }
                     );
                 }
@@ -570,25 +622,192 @@ export async function GET(request) {
                 stipendFilter.$gte > stipendFilter.$lte
             ) {
                 return NextResponse.json(
-                    { success: false, message: "Minimum stipend cannot exceed maximum stipend." },
+                    {
+                        success: false,
+                        message: "Minimum stipend cannot exceed maximum stipend.",
+                    },
                     { status: 400 }
                 );
             }
 
-            filter["stipend.amount"] = stipendFilter;
+            filters.push({
+                "stipend.amount": stipendFilter,
+                "stipend.period": {
+                    $nin: ["unpaid", "unspecified"],
+                },
+            });
         }
 
-        const allowedSorts = {
+        // Duration filters.
+        if (
+            durationUnit &&
+            !["days", "weeks", "months"].includes(durationUnit)
+        ) {
+            return NextResponse.json(
+                { success: false, message: "Invalid duration unit." },
+                { status: 400 }
+            );
+        }
+
+        if (durationUnit) {
+            filters.push({
+                "duration.unit": durationUnit,
+            });
+        }
+
+        if (durationMin !== null || durationMax !== null) {
+            const durationFilter = {};
+
+            if (durationMin !== null) {
+                const value = Number(durationMin);
+
+                if (!Number.isFinite(value) || value < 1) {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            message: "Invalid minimum duration.",
+                        },
+                        { status: 400 }
+                    );
+                }
+
+                durationFilter.$gte = value;
+            }
+
+            if (durationMax !== null) {
+                const value = Number(durationMax);
+
+                if (!Number.isFinite(value) || value < 1) {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            message: "Invalid maximum duration.",
+                        },
+                        { status: 400 }
+                    );
+                }
+
+                durationFilter.$lte = value;
+            }
+
+            if (
+                durationFilter.$gte !== undefined &&
+                durationFilter.$lte !== undefined &&
+                durationFilter.$gte > durationFilter.$lte
+            ) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: "Minimum duration cannot exceed maximum duration.",
+                    },
+                    { status: 400 }
+                );
+            }
+
+            filters.push({
+                "duration.value": durationFilter,
+            });
+        }
+
+        // Company identity verification filter.
+        if (
+            verification === "verified" ||
+            verification === "unverified"
+        ) {
+            const identityStatus =
+                verification === "verified"
+                    ? "verified"
+                    : { $ne: "verified" };
+
+            const matchingCompanies = await Company.find({
+                identityStatus,
+            }).select("_id").lean();
+
+            const companyIds = matchingCompanies.map(
+                (company) => company._id
+            );
+
+            if (!companyIds.length) {
+                return emptyResponse(page, limit);
+            }
+
+            filters.push({
+                companyId: { $in: companyIds },
+            });
+        } else if (verification && verification !== "all") {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Invalid verification filter.",
+                },
+                { status: 400 }
+            );
+        }
+
+        // Risk severity filter using latest non-superseded assessment.
+        if (risk && risk !== "all") {
+            const allowedRisks = [
+                "low",
+                "medium",
+                "high",
+                "critical",
+            ];
+
+            if (!allowedRisks.includes(risk)) {
+                return NextResponse.json(
+                    { success: false, message: "Invalid risk filter." },
+                    { status: 400 }
+                );
+            }
+
+            const latestRiskResults = await RiskAssessment.aggregate([
+                {
+                    $match: {
+                        status: { $ne: "superseded" },
+                    },
+                },
+                {
+                    $sort: { assessedAt: -1 },
+                },
+                {
+                    $group: {
+                        _id: "$internshipId",
+                        severity: { $first: "$severity" },
+                    },
+                },
+                {
+                    $match: { severity: risk },
+                },
+            ]);
+
+            const internshipIds = latestRiskResults.map(
+                (item) => item._id
+            );
+
+            if (!internshipIds.length) {
+                return emptyResponse(page, limit);
+            }
+
+            filters.push({
+                _id: { $in: internshipIds },
+            });
+        }
+
+        const query = { $and: filters };
+
+        // Sorting.
+        const sortOptions = {
             newest: { createdAt: -1 },
+            latest: { createdAt: -1 },
             oldest: { createdAt: 1 },
-            stipend_high: { "stipend.amount": -1 },
-            stipend_low: { "stipend.amount": 1 },
-            deadline: { applicationDeadline: 1 },
+            stipend_high: { "stipend.amount": -1, createdAt: -1 },
+            stipend_low: { "stipend.amount": 1, createdAt: -1 },
+            "stipend-high": { "stipend.amount": -1, createdAt: -1 },
+            "stipend-low": { "stipend.amount": 1, createdAt: -1 },
+            deadline: { applicationDeadline: 1, createdAt: -1 },
         };
 
-        const sortBy = searchParams.get("sort") || "newest";
-
-        if (!allowedSorts[sortBy]) {
+        if (!sortOptions[sort]) {
             return NextResponse.json(
                 { success: false, message: "Invalid sort option." },
                 { status: 400 }
@@ -597,35 +816,98 @@ export async function GET(request) {
 
         const skip = (page - 1) * limit;
 
-        const [internships, total] = await Promise.all([
-            Internship.find(filter)
-                .populate("companyId", "name website identityStatus")
-                .sort(allowedSorts[sortBy])
-                .skip(skip)
-                .limit(limit)
-                .lean(),
+        const total = await Internship.countDocuments(query);
 
-            Internship.countDocuments(filter),
-        ]);
+        const internships = await Internship.find(query)
+            .populate({
+                path: "companyId",
+                select: "name domain website industry headquarters identityStatus",
+            })
+            .sort(sortOptions[sort])
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        // Retrieve latest assessments for the returned internships.
+        const internshipIds = internships.map(
+            (internship) => internship._id
+        );
+
+        const latestAssessments = internshipIds.length
+            ? await RiskAssessment.aggregate([
+                {
+                    $match: {
+                        internshipId: { $in: internshipIds },
+                        status: { $ne: "superseded" },
+                    },
+                },
+                {
+                    $sort: { assessedAt: -1 },
+                },
+                {
+                    $group: {
+                        _id: "$internshipId",
+                        score: { $first: "$score" },
+                        severity: { $first: "$severity" },
+                        status: { $first: "$status" },
+                        assessedAt: { $first: "$assessedAt" },
+                    },
+                },
+            ])
+            : [];
+
+        const riskByInternship = new Map(
+            latestAssessments.map((assessment) => [
+                assessment._id.toString(),
+                assessment,
+            ])
+        );
+
+        const data = internships.map((internship) => {
+            const assessment = riskByInternship.get(
+                internship._id.toString()
+            );
+
+            return {
+                ...internship,
+                company: internship.companyId,
+                companyId:
+                    internship.companyId?._id ||
+                    internship.companyId,
+                riskAssessment: assessment
+                    ? {
+                        score: assessment.score,
+                        severity: assessment.severity,
+                        status: assessment.status,
+                        assessedAt: assessment.assessedAt,
+                    }
+                    : null,
+            };
+        });
+
+        const totalPages = Math.ceil(total / limit);
 
         return NextResponse.json({
             success: true,
-            data: internships,
+            data,
             pagination: {
                 page,
                 limit,
                 total,
-                totalPages: Math.ceil(total / limit),
-                hasNextPage: skip + internships.length < total,
+                totalPages,
+                hasNextPage: page < totalPages,
                 hasPreviousPage: page > 1,
             },
         });
 
     } catch (error) {
-        console.error("Fetch Internships Error:", error);
+        console.error("Fetch Internships API Error:", error);
 
         return NextResponse.json(
-            { success: false, message: "Unable to retrieve internships." },
+            {
+                success: false,
+                message: "Unable to retrieve internships.",
+            },
             { status: 500 }
         );
     }

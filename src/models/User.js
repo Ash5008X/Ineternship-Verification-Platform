@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
 
         role: {
             type: String,
-            enum: ["student", "recruiter", "reviewer", "admin"],
+            enum: ["student", "recruiter"],
             default: "student",
             required: true,
         },
@@ -51,7 +51,7 @@ const userSchema = new mongoose.Schema(
             jobTitle: {
                 type: String,
                 trim: true,
-                maxlength: 100,
+                maxlength: 120,
             },
         },
 
@@ -62,8 +62,8 @@ const userSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["pending", "active", "suspended"],
-            default: "pending",
+            enum: ["active", "suspended"],
+            default: "active",
         },
     },
     { timestamps: true }

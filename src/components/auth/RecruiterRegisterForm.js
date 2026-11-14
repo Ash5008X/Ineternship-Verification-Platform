@@ -10,11 +10,14 @@ export default function RecruiterRegisterForm({
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
 
-        const formData = new FormData(event.currentTarget);
+        const form = event.currentTarget;
+        const formData = new FormData(form);
+
         const password = formData.get("password");
         const confirmPassword = formData.get("confirmPassword");
 
@@ -33,9 +36,39 @@ export default function RecruiterRegisterForm({
             return;
         }
 
-        setMessage(
-            "Registration API will be connected in the next step."
-        );
+        setLoading(true);
+        setMessage("");
+
+        try {
+            const response = await fetch("/api/auth/register/recruiter", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    fullName: formData.get("fullName"),
+                    workEmail: formData.get("workEmail"),
+                    companyName: formData.get("companyName"),
+                    companyWebsite: formData.get("companyWebsite"),
+                    jobTitle: formData.get("jobTitle"),
+                    password,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Registration failed.");
+            }
+
+            setMessage("Recruiter account created. Redirecting...");
+
+            window.location.href = "/recruiter/dashboard";
+        } catch (error) {
+            setMessage(error.message || "Something went wrong.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -211,12 +244,12 @@ export default function RecruiterRegisterForm({
                     <button
                         className="auth-submit-btn"
                         type="submit"
+                        disabled={loading}
                     >
-                        <span>Create recruiter account</span>
-                        <span
-                            className="auth-btn-arrow"
-                            aria-hidden="true"
-                        >
+                        <span>
+                            {loading ? "Creating account..." : "Create recruiter account"}
+                        </span>
+                        <span className="auth-btn-arrow" aria-hidden="true">
                             ↗
                         </span>
                     </button>
