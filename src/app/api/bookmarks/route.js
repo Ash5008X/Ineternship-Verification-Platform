@@ -1,33 +1,58 @@
 
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
+
 import { connectDB } from "@/config/db";
 import { getCurrentUser } from "@/lib/auth/session";
+
 import Bookmark from "@/models/Bookmark";
 import Internship from "@/models/Internship";
 import Company from "@/models/Company";
 
+async function getStudent() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return {
+      user: null,
+      response: NextResponse.json(
+        {
+          success: false,
+          message: "Please log in first.",
+        },
+        { status: 401 }
+      ),
+    };
+  }
+
+  if (user.role !== "student") {
+    return {
+      user: null,
+      response: NextResponse.json(
+        {
+          success: false,
+          message: "Access denied. Student account required.",
+        },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { user, response: null };
+}
+
+// GET: Fetch all bookmarks belonging to the logged-in student.
 export async function GET() {
   try {
-    const user = await getCurrentUser();
+    const { user, response } = await getStudent();
 
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: "Please log in to view bookmarks." },
-        { status: 401 }
-      );
-    }
-
-    if (user.role !== "student") {
-      return NextResponse.json(
-        { success: false, message: "Access denied." },
-        { status: 403 }
-      );
-    }
+    if (response) return response;
 
     await connectDB();
 
-    const bookmarks = await Bookmark.find({ userId: user._id })
+    const bookmarks = await Bookmark.find({
+      userId: user._id,
+    })
       .sort({ createdAt: -1 })
       .populate({
         path: "internshipId",
@@ -42,20 +67,31 @@ export async function GET() {
 
     const data = bookmarks
       .filter((bookmark) => bookmark.internshipId)
-      .map((bookmark) => ({
-        bookmarkId: bookmark._id.toString(),
-        savedAt: bookmark.createdAt,
-        internship: {
-          ...bookmark.internshipId,
-          _id: bookmark.internshipId._id.toString(),
-          company: bookmark.internshipId.companyId
-            ? {
-                ...bookmark.internshipId.companyId,
-                _id: bookmark.internshipId.companyId._id.toString(),
-              }
-            : null,
-        },
-      }));
+      .map((bookmark) => {
+        const internship = bookmark.internshipId;
+        const company = internship.companyId;
+
+        return {
+          bookmarkId: bookmark._id.toString(),
+          savedAt: bookmark.createdAt,
+
+          internship: {
+            ...internship,
+            _id: internship._id.toString(),
+
+            company: company
+              ? {
+                  ...company,
+                  _id: company._id.toString(),
+                }
+              : null,
+
+            companyId: company
+              ? company._id.toString()
+              : null,
+          },
+        };
+      });
 
     return NextResponse.json({
       success: true,
@@ -66,36 +102,160 @@ export async function GET() {
     console.error("Fetch bookmarks error:", error);
 
     return NextResponse.json(
-      { success: false, message: "Unable to fetch bookmarks." },
+      {
+        success: false,
+        message: "Unable to fetch bookmarks.",
+      },
       { status: 500 }
     );
   }
 }
 
+// POST: Add an internship to the student's bookmarks.
+export async function POST(request) {
+  try {
+    const { user, response } = await getStudent();
+
+    if (response) return response;
+
+    let body;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid request body.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const { internshipId } = body || {};
+
+    if (
+      !internshipId ||
+      !mongoose.isValidObjectId(internshipId)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "A valid internship ID is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    // Only active internships are available to students.
+    const internship = await Internship.findOne({
+      _id: internshipId,
+      status: "active",
+    })
+      .select("_id title companyId")
+      .lean();
+
+    if (!internship) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Internship not found or is no longer available.",
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check whether the student already bookmarked this internship.
+    const existingBookmark = await Bookmark.findOne({
+      userId: user._id,
+      internshipId: internship._id,
+    }).lean();
+
+    if (existingBookmark) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You have already bookmarked this internship.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const bookmark = await Bookmark.create({
+      userId: user._id,
+      internshipId: internship._id,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Internship bookmarked successfully.",
+        data: {
+          bookmarkId: bookmark._id.toString(),
+          internshipId: internship._id.toString(),
+          savedAt: bookmark.createdAt,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    // Handles duplicate insertion caused by simultaneous requests.
+    if (error.code === 11000) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You have already bookmarked this internship.",
+        },
+        { status: 409 }
+      );
+    }
+
+    console.error("Create bookmark error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Unable to bookmark internship.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: Remove an internship from the student's bookmarks.
 export async function DELETE(request) {
   try {
-    const user = await getCurrentUser();
+    const { user, response } = await getStudent();
 
-    if (!user) {
+    if (response) return response;
+
+    let body;
+
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { success: false, message: "Please log in first." },
-        { status: 401 }
+        {
+          success: false,
+          message: "Invalid request body.",
+        },
+        { status: 400 }
       );
     }
 
-    if (user.role !== "student") {
-      return NextResponse.json(
-        { success: false, message: "Access denied." },
-        { status: 403 }
-      );
-    }
+    const { internshipId } = body || {};
 
-    const body = await request.json();
-    const { internshipId } = body;
-
-    if (!mongoose.isValidObjectId(internshipId)) {
+    if (
+      !internshipId ||
+      !mongoose.isValidObjectId(internshipId)
+    ) {
       return NextResponse.json(
-        { success: false, message: "Invalid internship ID." },
+        {
+          success: false,
+          message: "A valid internship ID is required.",
+        },
         { status: 400 }
       );
     }
@@ -109,7 +269,10 @@ export async function DELETE(request) {
 
     if (!deletedBookmark) {
       return NextResponse.json(
-        { success: false, message: "Bookmark not found." },
+        {
+          success: false,
+          message: "Bookmark not found.",
+        },
         { status: 404 }
       );
     }
@@ -122,7 +285,10 @@ export async function DELETE(request) {
     console.error("Remove bookmark error:", error);
 
     return NextResponse.json(
-      { success: false, message: "Unable to remove bookmark." },
+      {
+        success: false,
+        message: "Unable to remove bookmark.",
+      },
       { status: 500 }
     );
   }

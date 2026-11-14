@@ -14,11 +14,11 @@ export const RISK_THRESHOLDS = {
     },
     HIGH: {
         min: 45,
-        max: 69,
+        max: 74,
         severity: "high",
     },
     CRITICAL: {
-        min: 70,
+        min: 75,
         max: 100,
         severity: "critical",
     },

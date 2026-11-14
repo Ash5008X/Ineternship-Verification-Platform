@@ -1,7 +1,7 @@
+
 import Avatar from "../ui/Avatar";
 import Button from "../ui/Button";
 import MatchBadge from "./MatchBadge";
-import RiskBadge from "./RiskBadge";
 import SkillChips from "./SkillChips";
 import InternshipMeta from "./InternshipMeta";
 import VerificationSummary from "./VerificationSummary";
@@ -14,11 +14,14 @@ export default function InternshipDetails({
   userSkills = [],
   onToggleBookmark,
   onApply,
+  isApplied = false,
 }) {
   if (!internship) {
     return (
       <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-8 text-center">
-        <p className="text-xs text-text-muted">Select an internship to view details</p>
+        <p className="text-xs text-text-muted">
+          Select an internship to view details
+        </p>
       </div>
     );
   }
@@ -34,7 +37,6 @@ export default function InternshipDetails({
     stipend,
     applicationDeadline,
     matchPercentage,
-    riskLevel,
     applicationType,
     description,
     workItems = [],
@@ -60,15 +62,19 @@ export default function InternshipDetails({
               size="lg"
               className="rounded-[var(--radius-md)] shrink-0"
             />
+
             <div className="min-w-0">
               <h2 className="font-ui font-extrabold text-lg sm:text-xl text-text leading-tight">
                 {role}
               </h2>
+
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="font-ui font-medium text-sm text-text-secondary">
                   {company}
                 </span>
+
                 <span className="w-1 h-1 rounded-full bg-border-strong shrink-0" />
+
                 <span className="font-mono text-xs text-text-muted">
                   {companyDomain}
                 </span>
@@ -77,24 +83,24 @@ export default function InternshipDetails({
           </div>
         </div>
 
-        {/* Match & Risk Indicators (Visually Separate) */}
+        {/* Match Indicator and Stipend */}
         <div className="mt-4 flex items-center justify-between gap-3 pt-3 border-t border-border/70 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <MatchBadge percentage={matchPercentage} size="sm" />
-            <RiskBadge level={riskLevel} size="sm" />
           </div>
 
           <div className="text-right">
             <span className="font-number font-extrabold text-base text-text">
               {stipend}
             </span>
+
             <span className="text-text-muted text-xs block font-ui">
               Fixed Stipend
             </span>
           </div>
         </div>
 
-        {/* Metadata row */}
+        {/* Metadata */}
         <div className="mt-3.5 pt-3 border-t border-border/70">
           <InternshipMeta
             location={location}
@@ -102,6 +108,7 @@ export default function InternshipDetails({
             duration={duration}
             deadline={applicationDeadline}
           />
+
           <div className="mt-2 flex items-center gap-3 text-[11px] text-text-muted">
             <span>Posted {postedTime}</span>
             <span>•</span>
@@ -111,48 +118,19 @@ export default function InternshipDetails({
 
         {/* Action Buttons */}
         <div className="mt-5 flex items-center gap-3 flex-wrap sm:flex-nowrap">
-          {isEasyApply ? (
-            <Button
-              variant="primary"
-              size="md"
-              fullWidth
-              onClick={() => onApply && onApply(internship)}
-              icon={
-                <svg
-                  className="w-4 h-4 fill-current"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
-                </svg>
-              }
-            >
-              Easy Apply
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="md"
-              fullWidth
-              onClick={() => onApply && onApply(internship)}
-              icon={
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                  />
-                </svg>
-              }
-            >
-              Apply on Company Website
-            </Button>
-          )}
+          <Button
+            variant={isApplied ? "secondary" : "primary"}
+            size="md"
+            fullWidth
+            disabled={isApplied}
+            onClick={() => !isApplied && onApply?.(internship)}
+          >
+            {isApplied
+              ? "Already Applied"
+              : isEasyApply
+                ? "Easy Apply"
+                : "Apply on Company Website"}
+          </Button>
 
           <Button
             variant={isBookmarked ? "soft" : "secondary"}
@@ -162,7 +140,9 @@ export default function InternshipDetails({
             icon={
               <svg
                 className={`w-4 h-4 ${
-                  isBookmarked ? "fill-primary text-primary" : "text-text-secondary"
+                  isBookmarked
+                    ? "fill-primary text-primary"
+                    : "text-text-secondary"
                 }`}
                 fill={isBookmarked ? "currentColor" : "none"}
                 viewBox="0 0 24 24"
@@ -194,21 +174,24 @@ export default function InternshipDetails({
           <h3 className="font-ui font-bold text-sm text-text mb-2 uppercase tracking-wider text-[11px] text-text-muted">
             About the Role
           </h3>
+
           <p className="font-ui text-sm text-text-secondary leading-relaxed">
             {description}
           </p>
         </section>
 
-        {/* Required Skills & Candidate Match */}
+        {/* Required Skills */}
         <section>
           <div className="flex items-center justify-between mb-2.5">
             <h3 className="font-ui font-bold text-sm text-text uppercase tracking-wider text-[11px] text-text-muted">
               Required Skills
             </h3>
+
             <span className="text-[11px] font-ui text-text-muted">
               Matched against your CV
             </span>
           </div>
+
           <SkillChips
             skills={skills}
             highlightSkills={userSkills}
@@ -222,6 +205,7 @@ export default function InternshipDetails({
             <h3 className="font-ui font-bold text-sm text-text mb-2.5 uppercase tracking-wider text-[11px] text-text-muted">
               What You&apos;ll Work On
             </h3>
+
             <ul className="space-y-2">
               {workItems.map((item, index) => (
                 <li
@@ -252,8 +236,10 @@ export default function InternshipDetails({
                 d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
               />
             </svg>
+
             <span>Application Method</span>
           </div>
+
           <p>
             {isEasyApply
               ? "Your InternCheck student profile and verified skills will be submitted directly to the employer's review portal without fee redirects."

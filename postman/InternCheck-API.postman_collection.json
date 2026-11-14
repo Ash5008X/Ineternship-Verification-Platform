@@ -17,7 +17,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Unauthenticated request returns 401\", function () {\n    pm.response.to.have.status(401);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.to.be.json;\n});\n\nconst body = pm.response.json();\n\npm.test(\"Authentication is rejected\", function () {\n    pm.expect(body.authenticated).to.eql(false);\n});\n\npm.test(\"User data is not returned\", function () {\n    pm.expect(responseBody.user).to.be.oneOf([null, undefined]);\n});"
+                  "pm.test(\"Unauthenticated request returns 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Response is valid JSON\", function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Authentication is rejected\", function () {",
+                  "    pm.expect(body.authenticated).to.eql(false);",
+                  "});",
+                  "pm.test(\"User data is not returned\", function () {",
+                  "    pm.expect(body.user).to.be.oneOf([null, undefined]);",
+                  "});"
                 ]
               }
             }
@@ -547,7 +559,7 @@
       "name": "Recruiter Authentication",
       "item": [
         {
-          "name": "RecriuterLogin",
+          "name": "RecruiterLogin",
           "event": [
             {
               "listen": "test",
@@ -586,6 +598,653 @@
                 "auth",
                 "login"
               ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recruiter Applications",
+      "item": [
+        {
+          "name": "GetRecruiterApplications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Recruiter applications endpoint returns 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Response is valid JSON\", function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Applications response has expected envelope\", function () {",
+                  "    pm.expect(body.success).to.eql(true);",
+                  "    pm.expect(body.data).to.be.an(\"array\");",
+                  "    pm.expect(body.pagination).to.be.an(\"object\");",
+                  "    pm.expect(body.stats).to.be.an(\"object\");",
+                  "});",
+                  "pm.test(\"Pagination fields are valid\", function () {",
+                  "    pm.expect(body.pagination.page).to.be.a(\"number\");",
+                  "    pm.expect(body.pagination.limit).to.be.a(\"number\");",
+                  "    pm.expect(body.pagination.total).to.be.a(\"number\");",
+                  "    pm.expect(body.pagination.totalPages).to.be.a(\"number\");",
+                  "});",
+                  "pm.test(\"Recruiter statistics contain all application statuses\", function () {",
+                  "    [\"total\", \"applied\", \"interviewing\", \"offered\", \"rejected\", \"withdrawn\"].forEach(function (key) {",
+                  "        pm.expect(body.stats[key]).to.be.a(\"number\");",
+                  "    });",
+                  "});",
+                  "pm.test(\"Each application contains recruiter-facing candidate and internship data\", function () {",
+                  "    body.data.forEach(function (application) {",
+                  "        pm.expect(application._id).to.exist;",
+                  "        pm.expect([\"applied\", \"interviewing\", \"offered\", \"rejected\", \"withdrawn\"]).to.include(application.status);",
+                  "        pm.expect(application.applicationMethod).to.be.a(\"string\");",
+                  "        pm.expect(application.student).to.be.an(\"object\");",
+                  "        pm.expect(application.student._id).to.exist;",
+                  "        pm.expect(application.student.name).to.be.a(\"string\");",
+                  "        pm.expect(application.student.email).to.be.a(\"string\");",
+                  "        pm.expect(application.internship).to.be.an(\"object\");",
+                  "        pm.expect(application.internship._id).to.exist;",
+                  "        pm.expect(application.internship.title).to.be.a(\"string\");",
+                  "    });",
+                  "});",
+                  "if (body.data.length > 0) {",
+                  "    pm.environment.set(\"recruiterApplicationId\", body.data[0]._id);",
+                  "    if (body.data[0].cv && body.data[0].cv._id) {",
+                  "        pm.environment.set(\"recruiterApplicationWithCvId\", body.data[0]._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GetRecruiterApplications_FilterByStatus",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status-filtered recruiter applications request succeeds\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Every returned application matches the requested status\", function () {",
+                  "    pm.expect(body.success).to.eql(true);",
+                  "    body.data.forEach(function (application) {",
+                  "        pm.expect(application.status).to.eql(\"applied\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "applied"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GetRecruiterApplications_Search",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Recruiter application search succeeds\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Search response contains an application array\", function () {",
+                  "    pm.expect(body.success).to.eql(true);",
+                  "    pm.expect(body.data).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "{{recruiterSearchTerm}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GetRecruiterApplicationById",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Recruiter can retrieve an owned application\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Response is valid JSON\", function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Application detail has the expected structure\", function () {",
+                  "    pm.expect(body.success).to.eql(true);",
+                  "    pm.expect(body.data).to.be.an(\"object\");",
+                  "    pm.expect(body.data._id).to.eql(pm.environment.get(\"recruiterApplicationId\"));",
+                  "    pm.expect(body.data.student).to.be.an(\"object\");",
+                  "    pm.expect(body.data.internship).to.be.an(\"object\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications/{{recruiterApplicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications",
+                "{{recruiterApplicationId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "UpdateRecruiterApplicationStatus",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Recruiter can update an owned application status\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Updated application is returned\", function () {",
+                  "    pm.response.to.be.json;",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.eql(true);",
+                  "    pm.expect(body.data).to.be.an(\"object\");",
+                  "    pm.expect(body.data.status).to.eql(\"interviewing\");",
+                  "    pm.expect(body.message).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications/{{recruiterApplicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications",
+                "{{recruiterApplicationId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"interviewing\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "RejectInvalidApplicationStatus",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Invalid recruiter application status is rejected\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
+                  "});",
+                  "pm.test(\"Error response explains the rejection\", function () {",
+                  "    pm.response.to.be.json;",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.eql(false);",
+                  "    pm.expect(body.message).to.be.a(\"string\").and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications/{{recruiterApplicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications",
+                "{{recruiterApplicationId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"saved\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "RejectInvalidApplicationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Invalid application ID returns 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"Invalid ID response contains an error message\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.eql(false);",
+                  "    pm.expect(body.message).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications/not-a-valid-id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications",
+                "not-a-valid-id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DownloadCandidateCV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"CV download returns a redirect or a successful file response\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 302, 303, 307]);",
+                  "});",
+                  "pm.test(\"CV download provides a location or file content\", function () {",
+                  "    const location = pm.response.headers.get(\"Location\");",
+                  "    const contentType = pm.response.headers.get(\"Content-Type\") || \"\";",
+                  "    pm.expect(Boolean(location) || contentType.length > 0).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications/{{recruiterApplicationWithCvId}}/cv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications",
+                "{{recruiterApplicationWithCvId}}",
+                "cv"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "RejectInvalidCVApplicationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Invalid application ID is rejected by the CV endpoint\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"Invalid ID response is JSON with an error\", function () {",
+                  "    pm.response.to.be.json;",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.eql(false);",
+                  "    pm.expect(body.message).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/applications/not-a-valid-id/cv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "applications",
+                "not-a-valid-id",
+                "cv"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recruiter Profile",
+      "item": [
+        {
+          "name": "GetRecruiterProfile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Recruiter profile GET returns 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Profile response is valid JSON\", function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Profile response has recruiter and company objects\", function () {",
+                  "    pm.expect(body.success).to.eql(true);",
+                  "    pm.expect(body.data).to.be.an(\"object\");",
+                  "    pm.expect(body.data.recruiter).to.be.an(\"object\");",
+                  "    pm.expect(body.data.company).to.be.an(\"object\");",
+                  "});",
+                  "pm.test(\"Recruiter profile exposes expected fields\", function () {",
+                  "    pm.expect(body.data.recruiter.name).to.be.a(\"string\");",
+                  "    pm.expect(body.data.recruiter.email).to.be.a(\"string\");",
+                  "    pm.expect(body.data.recruiter).to.have.property(\"jobTitle\");",
+                  "});",
+                  "pm.test(\"Company profile exposes expected fields\", function () {",
+                  "    const company = body.data.company;",
+                  "    [\"name\", \"website\", \"description\", \"industry\", \"contactEmail\", \"identityStatus\"].forEach(function (key) {",
+                  "        pm.expect(company).to.have.property(key);",
+                  "    });",
+                  "    pm.expect(company.headquarters).to.be.an(\"object\");",
+                  "});",
+                  "pm.test(\"Company verification status is valid\", function () {",
+                  "    pm.expect([\"unverified\", \"pending\", \"verified\", \"rejected\"]).to.include(body.data.company.identityStatus);",
+                  "});",
+                  "if (body.success && body.data) {",
+                  "    pm.environment.set(\"recruiterProfileName\", body.data.recruiter.name || \"InternCheck Recruiter\");",
+                  "    pm.environment.set(\"recruiterProfileJobTitle\", body.data.recruiter.jobTitle || \"Talent Acquisition Manager\");",
+                  "    pm.environment.set(\"recruiterCompanyName\", body.data.company.name || \"InternCheck Test Solutions\");",
+                  "    pm.environment.set(\"recruiterCompanyWebsite\", body.data.company.website || \"https://example.com\");",
+                  "    pm.environment.set(\"recruiterCompanyDescription\", body.data.company.description || \"\");",
+                  "    pm.environment.set(\"recruiterCompanyIndustry\", body.data.company.industry || \"Information Technology\");",
+                  "    pm.environment.set(\"recruiterCompanyContactEmail\", body.data.company.contactEmail || \"careers@example.com\");",
+                  "    pm.environment.set(\"recruiterCompanyCity\", body.data.company.headquarters.city || \"\");",
+                  "    pm.environment.set(\"recruiterCompanyState\", body.data.company.headquarters.state || \"\");",
+                  "    pm.environment.set(\"recruiterCompanyCountry\", body.data.company.headquarters.country || \"India\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "UpdateRecruiterProfile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Recruiter profile PATCH succeeds\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Updated recruiter and company profile are returned\", function () {",
+                  "    pm.response.to.be.json;",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.eql(true);",
+                  "    pm.expect(body.message).to.be.a(\"string\");",
+                  "    pm.expect(body.data.recruiter).to.be.an(\"object\");",
+                  "    pm.expect(body.data.company).to.be.an(\"object\");",
+                  "});",
+                  "pm.test(\"Saved profile fields match the submitted values\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.recruiter.name).to.eql(pm.environment.get(\"recruiterProfileName\"));",
+                  "    pm.expect(body.data.recruiter.jobTitle).to.eql(pm.environment.get(\"recruiterProfileJobTitle\"));",
+                  "    pm.expect(body.data.company.name).to.eql(pm.environment.get(\"recruiterCompanyName\"));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "profile"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recruiter\": {\n    \"name\": \"{{recruiterProfileName}}\",\n    \"jobTitle\": \"{{recruiterProfileJobTitle}}\"\n  },\n  \"company\": {\n    \"name\": \"{{recruiterCompanyName}}\",\n    \"website\": \"{{recruiterCompanyWebsite}}\",\n    \"description\": \"{{recruiterCompanyDescription}}\",\n    \"industry\": \"{{recruiterCompanyIndustry}}\",\n    \"contactEmail\": \"{{recruiterCompanyContactEmail}}\",\n    \"headquarters\": {\n      \"city\": \"{{recruiterCompanyCity}}\",\n      \"state\": \"{{recruiterCompanyState}}\",\n      \"country\": \"{{recruiterCompanyCountry}}\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "RejectInvalidRecruiterProfile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Invalid recruiter profile data is rejected\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"Validation error is returned as JSON\", function () {",
+                  "    pm.response.to.be.json;",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.eql(false);",
+                  "    pm.expect(body.message).to.be.a(\"string\").and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/recruiter/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recruiter",
+                "profile"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recruiter\": {\n    \"name\": \"A\",\n    \"jobTitle\": \"Recruiter\"\n  },\n  \"company\": {\n    \"name\": \"Invalid Test Company\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -656,6 +1315,73 @@
           "response": []
         }
       ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "recruiterApplicationId",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterApplicationWithCvId",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterProfileName",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterProfileJobTitle",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterCompanyName",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterCompanyWebsite",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterCompanyDescription",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterCompanyIndustry",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterCompanyContactEmail",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterCompanyCity",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterCompanyState",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterCompanyCountry",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "recruiterSearchTerm",
+      "value": "",
+      "type": "default"
     }
   ]
 }

@@ -1,14 +1,27 @@
-
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-const controlClass =
-  "rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text transition hover:border-primary/50";
+function formatDate(date) {
+  if (!date) return "Date unavailable";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Date unavailable";
+  }
+
+  return parsedDate.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 function formatStipend(stipend) {
-  if (!stipend || stipend.period === "unpaid") return "Unpaid";
+  if (!stipend) return "Not specified";
+  if (stipend.period === "unpaid") return "Unpaid";
   if (stipend.amount == null) return "Not specified";
 
   const amount = new Intl.NumberFormat("en-IN", {
@@ -16,7 +29,9 @@ function formatStipend(stipend) {
   }).format(stipend.amount);
 
   const currency =
-    stipend.currency === "INR" ? "₹" : `${stipend.currency || ""} `;
+    stipend.currency === "INR"
+      ? "₹"
+      : `${stipend.currency || ""} `;
 
   const periods = {
     hourly: "/ hour",
@@ -39,175 +54,205 @@ function formatDuration(duration) {
 function formatLocation(location) {
   if (!location) return "Location not specified";
 
-  return (
-    [location.city, location.state, location.country]
-      .filter(Boolean)
-      .join(", ") || "Location not specified"
-  );
+  const parts = [
+    location.city,
+    location.state,
+    location.country,
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(", ") : "Location not specified";
 }
 
-function StatusBadge({ status }) {
+function getStatusStyles(status) {
   const styles = {
-    active: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    expired: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    withdrawn: "bg-red-500/10 text-red-400 border-red-500/20",
-    draft: "bg-surface-alt text-text-muted border-border",
+    active: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+    pending: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+    expired: "border-orange-500/20 bg-orange-500/10 text-orange-400",
+    withdrawn: "border-red-500/20 bg-red-500/10 text-red-400",
+    rejected: "border-red-500/20 bg-red-500/10 text-red-400",
+    draft: "border-border bg-surface-alt text-text-muted",
   };
 
-  return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${
-        styles[status] || styles.draft
-      }`}
-    >
-      {status || "Unspecified"}
-    </span>
-  );
+  return styles[status] || styles.draft;
 }
 
 function BookmarkCard({ bookmark, onRemove, removing }) {
-  const internship = bookmark.internship;
+  const internship = bookmark?.internship;
+
+  if (!internship) return null;
+
   const company = internship.company;
+  const companyName = company?.name || "Company information unavailable";
+  const title = internship.title || "Untitled internship";
 
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-border bg-surface p-5 transition-all duration-200 hover:border-primary/50 hover:shadow-lg hover:shadow-black/10">
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-black/5">
+      <div className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-lg font-bold text-primary">
+              {companyName.charAt(0).toUpperCase()}
+            </div>
 
-      {/* Card heading */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-base font-bold text-primary">
-            {company?.name?.charAt(0)?.toUpperCase() || "C"}
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-bold text-text">
+                {title}
+              </h2>
+
+              <p className="mt-1 truncate text-sm text-text-muted">
+                {companyName}
+              </p>
+            </div>
           </div>
 
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-bold text-text">
-              {internship.title}
-            </h2>
+          <button
+            type="button"
+            onClick={() => onRemove(internship._id)}
+            disabled={removing}
+            aria-label={`Remove ${title} from bookmarks`}
+            title="Remove bookmark"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {removing ? (
+              <span className="text-xs">...</span>
+            ) : (
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 4.75A1.75 1.75 0 017.75 3h8.5A1.75 1.75 0 0118 4.75V21l-6-3.75L6 21V4.75z"
+                />
+              </svg>
+            )}
+          </button>
+        </div>
 
-            <p className="mt-1 truncate text-sm text-text-muted">
-              {company?.name || "Company information unavailable"}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {internship.category && (
+            <span className="rounded-md bg-surface-alt px-2.5 py-1 text-xs text-text-secondary">
+              {internship.category}
+            </span>
+          )}
+
+          {internship.workMode && (
+            <span className="rounded-md bg-surface-alt px-2.5 py-1 text-xs capitalize text-text-secondary">
+              {internship.workMode}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-5 flex items-center gap-2 text-sm text-text-muted">
+          <svg
+            className="h-4 w-4 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19.5 10.5c0 5.25-7.5 11-7.5 11s-7.5-5.75-7.5-11a7.5 7.5 0 1115 0z"
+            />
+            <circle cx="12" cy="10.5" r="2.5" />
+          </svg>
+
+          <span className="truncate">
+            {formatLocation(internship.location)}
+          </span>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="text-xs text-text-muted">Stipend</p>
+            <p className="mt-1 text-sm font-bold text-text">
+              {formatStipend(internship.stipend)}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="text-xs text-text-muted">Duration</p>
+            <p className="mt-1 text-sm font-bold text-text">
+              {formatDuration(internship.duration)}
             </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => onRemove(internship._id)}
-          disabled={removing}
-          aria-label={`Remove ${internship.title} from bookmarks`}
-          title="Remove bookmark"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-primary transition hover:bg-primary/10 disabled:opacity-50"
-        >
-          {removing ? (
-            <span className="text-xs">...</span>
-          ) : (
-            <svg
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M6 4.75A1.75 1.75 0 017.75 3h8.5A1.75 1.75 0 0118 4.75V21l-6-3.75L6 21V4.75z" />
-            </svg>
-          )}
-        </button>
-      </div>
+        {internship.requiredSkills?.length > 0 && (
+          <div className="mt-5">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+              Required skills
+            </p>
 
-      {/* Category and work mode */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {internship.category && (
-          <span className="rounded-md bg-surface-alt px-2.5 py-1 text-xs text-text-secondary">
-            {internship.category}
-          </span>
-        )}
+            <div className="flex flex-wrap gap-2">
+              {internship.requiredSkills.slice(0, 5).map((skill, index) => (
+                <span
+                  key={`${skill}-${index}`}
+                  className="rounded-md border border-border bg-surface-alt px-2.5 py-1 text-xs text-text-secondary"
+                >
+                  {skill}
+                </span>
+              ))}
 
-        {internship.workMode && (
-          <span className="rounded-md bg-surface-alt px-2.5 py-1 text-xs capitalize text-text-secondary">
-            {internship.workMode}
-          </span>
-        )}
-      </div>
-
-      {/* Location */}
-      <div className="mt-4 flex items-center gap-2 text-sm text-text-muted">
-        <svg
-          className="h-4 w-4 shrink-0"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.8}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19.5 10.5c0 5.25-7.5 11-7.5 11s-7.5-5.75-7.5-11a7.5 7.5 0 1115 0z"
-          />
-          <circle cx="12" cy="10.5" r="2.5" />
-        </svg>
-        <span className="truncate">
-          {formatLocation(internship.location)}
-        </span>
-      </div>
-
-      {/* Stipend and duration */}
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-border bg-background p-3">
-          <p className="text-xs text-text-muted">Stipend</p>
-          <p className="mt-1 text-sm font-bold text-text">
-            {formatStipend(internship.stipend)}
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-border bg-background p-3">
-          <p className="text-xs text-text-muted">Duration</p>
-          <p className="mt-1 text-sm font-bold text-text">
-            {formatDuration(internship.duration)}
-          </p>
-        </div>
-      </div>
-
-      {/* Required skills */}
-      {internship.requiredSkills?.length > 0 && (
-        <div className="mt-5">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
-            Required skills
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            {internship.requiredSkills.slice(0, 5).map((skill) => (
-              <span
-                key={skill}
-                className="rounded-md border border-border bg-surface-alt px-2.5 py-1 text-xs text-text-secondary"
-              >
-                {skill}
-              </span>
-            ))}
-
-            {internship.requiredSkills.length > 5 && (
-              <span className="px-1 py-1 text-xs text-text-muted">
-                +{internship.requiredSkills.length - 5} more
-              </span>
-            )}
+              {internship.requiredSkills.length > 5 && (
+                <span className="px-1 py-1 text-xs text-text-muted">
+                  +{internship.requiredSkills.length - 5} more
+                </span>
+              )}
+            </div>
           </div>
+        )}
+      </div>
+
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background/50 px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${getStatusStyles(
+              internship.status
+            )}`}
+          >
+            {internship.status || "Unspecified"}
+          </span>
+
+          <span className="text-xs text-text-muted">
+            Saved {formatDate(bookmark.savedAt)}
+          </span>
         </div>
-      )}
 
-      {/* Footer */}
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-        <StatusBadge status={internship.status} />
-
-        <span className="text-xs text-text-muted">
-          Saved{" "}
-          {bookmark.savedAt
-            ? new Date(bookmark.savedAt).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })
-            : ""}
-        </span>
+        <Link
+          href="/internships"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition hover:opacity-75"
+        >
+          Browse internships
+          <span aria-hidden="true">→</span>
+        </Link>
       </div>
     </article>
+  );
+}
+
+function LoadingCard() {
+  return (
+    <div className="animate-pulse rounded-2xl border border-border bg-surface p-5">
+      <div className="mb-5 flex gap-3">
+        <div className="h-12 w-12 rounded-xl bg-surface-alt" />
+
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-1/2 rounded bg-surface-alt" />
+          <div className="h-3 w-1/3 rounded bg-surface-alt" />
+        </div>
+      </div>
+
+      <div className="mb-4 h-4 w-1/3 rounded bg-surface-alt" />
+      <div className="mb-3 h-12 rounded-xl bg-surface-alt" />
+      <div className="h-12 rounded-xl bg-surface-alt" />
+    </div>
   );
 }
 
@@ -216,6 +261,7 @@ export default function BookmarksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [removingId, setRemovingId] = useState(null);
+  const [search, setSearch] = useState("");
 
   const fetchBookmarks = useCallback(async () => {
     try {
@@ -231,10 +277,14 @@ export default function BookmarksPage() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Unable to load bookmarks.");
+        throw new Error(
+          result.message || "Unable to load your saved internships."
+        );
       }
 
-      setBookmarks(result.data || []);
+      setBookmarks(
+        Array.isArray(result.data) ? result.data : []
+      );
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -247,6 +297,8 @@ export default function BookmarksPage() {
   }, [fetchBookmarks]);
 
   async function handleRemove(internshipId) {
+    if (!internshipId || removingId) return;
+
     try {
       setRemovingId(internshipId);
       setError("");
@@ -263,12 +315,15 @@ export default function BookmarksPage() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Unable to remove bookmark.");
+        throw new Error(
+          result.message || "Unable to remove this bookmark."
+        );
       }
 
       setBookmarks((previous) =>
         previous.filter(
-          (item) => item.internship._id !== internshipId
+          (bookmark) =>
+            bookmark.internship?._id !== internshipId
         )
       );
     } catch (err) {
@@ -278,37 +333,63 @@ export default function BookmarksPage() {
     }
   }
 
+  const filteredBookmarks = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return bookmarks;
+
+    return bookmarks.filter((bookmark) => {
+      const internship = bookmark.internship;
+      const companyName = internship?.company?.name || "";
+
+      return [
+        internship?.title,
+        companyName,
+        internship?.category,
+        internship?.workMode,
+        internship?.location?.city,
+        internship?.location?.state,
+      ]
+        .filter(Boolean)
+        .some((value) =>
+          String(value).toLowerCase().includes(query)
+        );
+    });
+  }, [bookmarks, search]);
+
   return (
     <div className="min-h-full w-full bg-background font-ui text-text antialiased">
-      <main className="flex-1 min-w-0 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* Page heading */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-primary" />
+      <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+        <section className="mb-7">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-primary" />
             <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
               Your Collection
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="font-display text-3xl sm:text-4xl text-text tracking-tight">
+              <h1 className="font-display text-3xl tracking-tight text-text sm:text-4xl">
                 My Bookmarks.
               </h1>
 
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="mt-1 text-sm text-text-secondary">
                 Keep track of internships you want to explore.
               </p>
             </div>
 
-            <p className="text-xs text-text-muted">
-              {bookmarks.length} saved internships
-            </p>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <p className="text-xs text-text-muted">
+                Saved internships
+              </p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-text">
+                {bookmarks.length}
+              </p>
+            </div>
           </div>
         </section>
 
-        {/* Error */}
         {error && (
           <div
             role="alert"
@@ -319,37 +400,54 @@ export default function BookmarksPage() {
             <button
               type="button"
               onClick={fetchBookmarks}
-              className="font-semibold underline"
+              className="font-semibold underline underline-offset-2"
             >
               Retry
             </button>
           </div>
         )}
 
-        {/* Loading */}
+        {!loading && bookmarks.length > 0 && (
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-md">
+              <svg
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path
+                  strokeLinecap="round"
+                  d="m16 16 4 4"
+                />
+              </svg>
+
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search saved internships..."
+                aria-label="Search saved internships"
+                className="w-full rounded-xl border border-border bg-surface py-3 pl-10 pr-4 text-sm text-text outline-none transition placeholder:text-text-muted focus:border-primary"
+              />
+            </div>
+
+            <p className="text-xs text-text-muted">
+              Showing {filteredBookmarks.length} of {bookmarks.length} saved
+              internships
+            </p>
+          </div>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
             {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="animate-pulse rounded-2xl border border-border bg-surface p-5"
-              >
-                <div className="mb-5 flex gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-surface-alt" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-1/2 rounded bg-surface-alt" />
-                    <div className="h-3 w-1/3 rounded bg-surface-alt" />
-                  </div>
-                </div>
-
-                <div className="mb-4 h-4 w-1/3 rounded bg-surface-alt" />
-                <div className="mb-3 h-12 rounded-xl bg-surface-alt" />
-                <div className="h-12 rounded-xl bg-surface-alt" />
-              </div>
+              <LoadingCard key={item} />
             ))}
           </div>
         ) : bookmarks.length === 0 ? (
-          /* Empty state */
           <section className="rounded-2xl border border-dashed border-border bg-surface px-5 py-16 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <svg
@@ -384,27 +482,40 @@ export default function BookmarksPage() {
               <span aria-hidden="true">→</span>
             </Link>
           </section>
+        ) : filteredBookmarks.length === 0 ? (
+          <section className="rounded-2xl border border-dashed border-border bg-surface px-5 py-14 text-center">
+            <h2 className="text-lg font-bold text-text">
+              No matching bookmarks
+            </h2>
+
+            <p className="mt-2 text-sm text-text-muted">
+              Try another search term.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="mt-5 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-text transition hover:border-primary/50"
+            >
+              Clear search
+            </button>
+          </section>
         ) : (
-          /* Saved internships */
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-text">
                 Saved opportunities
               </h2>
-
-              <span className="text-xs text-text-muted">
-                {bookmarks.length} results
-              </span>
             </div>
 
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-              {bookmarks.map((bookmark) => (
+              {filteredBookmarks.map((bookmark) => (
                 <BookmarkCard
                   key={bookmark.bookmarkId}
                   bookmark={bookmark}
                   onRemove={handleRemove}
                   removing={
-                    removingId === bookmark.internship._id
+                    removingId === bookmark.internship?._id
                   }
                 />
               ))}

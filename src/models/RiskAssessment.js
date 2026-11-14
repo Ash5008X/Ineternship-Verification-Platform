@@ -55,6 +55,12 @@ const riskAssessmentSchema = new mongoose.Schema(
             required: true,
         },
 
+        decision: {
+            type: String,
+            enum: ["approved", "needs_review", "rejected"],
+            required: true,
+        },
+
         triggeredRules: {
             type: [triggeredRuleSchema],
             default: [],

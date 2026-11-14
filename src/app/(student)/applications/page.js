@@ -64,11 +64,15 @@ function getLocation(internship) {
     .join(", ") || "Location not specified";
 }
 
-function ApplicationCard({ application }) {
+function ApplicationCard({ application, onWithdraw, withdrawing }) {
   const internship = application.internshipId;
   const status = statusConfig[application.status] || statusConfig.applied;
 
   if (!internship) return null;
+
+  const canWithdraw = ["applied", "interviewing"].includes(
+    application.status
+  );
 
   return (
     <article className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 sm:p-5 shadow-xs transition-colors hover:border-primary/30">
@@ -132,17 +136,30 @@ function ApplicationCard({ application }) {
           )}
         </div>
 
-        {internship.applicationUrl &&
-          application.applicationMethod === "external" && (
-            <a
-              href={internship.applicationUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-semibold text-primary transition-opacity hover:opacity-70"
+        <div className="flex flex-wrap items-center gap-4">
+          {internship.applicationUrl &&
+            application.applicationMethod === "external" && (
+              <a
+                href={internship.applicationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-semibold text-primary transition-opacity hover:opacity-70"
+              >
+                Company website ↗
+              </a>
+            )}
+
+          {canWithdraw && (
+            <button
+              type="button"
+              onClick={() => onWithdraw(application)}
+              disabled={withdrawing}
+              className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
             >
-              Company website ↗
-            </a>
+              {withdrawing ? "Withdrawing..." : "Withdraw application"}
+            </button>
           )}
+        </div>
       </div>
     </article>
   );
@@ -154,6 +171,8 @@ export default function ApplicationsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+  const [withdrawingId, setWithdrawingId] = useState(null);
 
   const fetchApplications = useCallback(async (signal) => {
     setLoading(true);
@@ -186,6 +205,50 @@ export default function ApplicationsPage() {
 
     return () => controller.abort();
   }, [fetchApplications]);
+
+  const handleWithdraw = async (application) => {
+    const confirmed = window.confirm(
+      `Withdraw your application for ${application.internshipId?.title || "this internship"}?`
+    );
+
+    if (!confirmed) return;
+
+    setWithdrawingId(application._id);
+    setToast("");
+
+    try {
+      const response = await fetch(
+        `/api/applications/${application._id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: "withdrawn" }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Unable to withdraw application.");
+      }
+
+      setApplications((previous) =>
+        previous.map((item) =>
+          item._id === application._id
+            ? { ...item, status: "withdrawn" }
+            : item
+        )
+      );
+
+      setToast("Application withdrawn successfully.");
+    } catch (err) {
+      setToast(err.message || "Unable to withdraw application.");
+    } finally {
+      setWithdrawingId(null);
+    }
+  };
 
   const counts = useMemo(() => {
     return {
@@ -338,6 +401,8 @@ export default function ApplicationsPage() {
                 <ApplicationCard
                   key={application._id}
                   application={application}
+                  onWithdraw={handleWithdraw}
+                  withdrawing={withdrawingId === application._id}
                 />
               ))
             ) : (
@@ -370,6 +435,12 @@ export default function ApplicationsPage() {
             )}
           </div>
         </section>
+
+        {toast && (
+          <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-[var(--radius-md)] bg-text px-4 py-3 text-xs font-semibold text-background shadow-lg">
+            {toast}
+          </div>
+        )}
       </main>
     </div>
   );

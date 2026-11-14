@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { assessInternship } from "@/lib/verification/verificationService";
 
@@ -6,26 +5,7 @@ export async function POST(request, { params }) {
     try {
         const { internshipId } = await params;
 
-        let body = {};
-
-        try {
-            body = await request.json();
-        } catch {
-            // Empty request body is allowed.
-        }
-
-        const result = await assessInternship(internshipId, {
-            signals: {
-                applicationFeeRequired:
-                    body.applicationFeeRequired === true,
-
-                upfrontPaymentRequired:
-                    body.upfrontPaymentRequired === true,
-
-                requiresManualReview:
-                    body.requiresManualReview === true,
-            },
-        });
+        const result = await assessInternship(internshipId);
 
         return NextResponse.json({
             success: true,

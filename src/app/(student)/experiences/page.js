@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -22,37 +21,67 @@ const experienceSections = [
   { key: "feedback", title: "Additional feedback" },
 ];
 
+const controlClass =
+  "w-full rounded-xl border border-border bg-background px-3.5 py-3 text-sm text-text outline-none transition placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/10";
+
+function formatDate(date) {
+  if (!date) return "Date unavailable";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Date unavailable";
+  }
+
+  return parsedDate.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function Rating({ value }) {
   if (!value) {
-    return <span className="text-xs text-text-muted">Not rated</span>;
+    return (
+      <span className="text-xs text-text-muted">
+        Not rated
+      </span>
+    );
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div
+      className="flex items-center gap-1.5"
+      aria-label={`Rated ${value} out of 5`}
+    >
       <span className="text-amber-400">★</span>
-      <span className="text-sm font-semibold text-text">{value}/5</span>
+      <span className="text-sm font-semibold text-text">
+        {value}/5
+      </span>
     </div>
   );
 }
 
 function StatusBadge({ status }) {
   const styles = {
-    applied: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    interviewed: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    applied: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    interviewed: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     offered: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     interned: "bg-primary/10 text-primary border-primary/20",
     completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     rejected: "bg-red-500/10 text-red-400 border-red-500/20",
-    withdrawn: "bg-gray-500/10 text-text-muted border-border",
+    withdrawn: "bg-surface-alt text-text-muted border-border",
   };
 
   const label =
-    statuses.find((item) => item.value === status)?.label || status;
+    statuses.find((item) => item.value === status)?.label ||
+    status ||
+    "Unspecified";
 
   return (
     <span
       className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
-        styles[status] || "bg-surface-alt text-text-muted border-border"
+        styles[status] || "border-border bg-surface-alt text-text-muted"
       }`}
     >
       {label}
@@ -69,22 +98,22 @@ function ExperienceCard({ experience }) {
     return typeof content === "string" && content.trim().length > 0;
   });
 
-  return (
-    <article className="rounded-2xl border border-border bg-surface p-5 sm:p-6 transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-black/5">
+  const companyName = company?.name || "Unknown company";
 
-      {/* Company information */}
+  return (
+    <article className="rounded-2xl border border-border bg-surface p-5 transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-black/5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-lg font-bold text-primary">
-            {company?.name?.charAt(0)?.toUpperCase() || "C"}
+            {companyName.charAt(0).toUpperCase()}
           </div>
 
           <div className="min-w-0">
-            <h2 className="truncate text-base sm:text-lg font-bold text-text">
-              {company?.name || "Unknown company"}
+            <h2 className="truncate text-base font-bold text-text sm:text-lg">
+              {companyName}
             </h2>
 
-            <p className="mt-1 text-sm text-text-muted truncate">
+            <p className="mt-1 truncate text-sm text-text-muted">
               {internship?.title || "Internship experience"}
             </p>
           </div>
@@ -96,7 +125,6 @@ function ExperienceCard({ experience }) {
         </div>
       </div>
 
-      {/* Industry */}
       {company?.industry && (
         <div className="mt-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">
@@ -105,7 +133,6 @@ function ExperienceCard({ experience }) {
         </div>
       )}
 
-      {/* Experience content */}
       {sections.length > 0 ? (
         <div className="mt-5 space-y-5">
           {sections.map(({ key, title }) => (
@@ -114,7 +141,7 @@ function ExperienceCard({ experience }) {
                 {title}
               </h3>
 
-              <p className="whitespace-pre-line text-sm leading-7 text-text-secondary">
+              <p className="whitespace-pre-line break-words text-sm leading-7 text-text-secondary">
                 {experience[key]}
               </p>
             </div>
@@ -126,7 +153,6 @@ function ExperienceCard({ experience }) {
         </p>
       )}
 
-      {/* Footer */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <div className="flex flex-wrap items-center gap-2">
           {internship?.category && (
@@ -143,32 +169,32 @@ function ExperienceCard({ experience }) {
         </div>
 
         <span className="text-xs text-text-muted">
-          {experience.createdAt
-            ? new Date(experience.createdAt).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })
-            : ""}
+          Shared {formatDate(experience.createdAt)}
         </span>
       </div>
     </article>
   );
 }
 
-function FilterField({ label, children }) {
+function LoadingCard() {
   return (
-    <div className="min-w-0">
-      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text-muted">
-        {label}
-      </label>
-      {children}
+    <div className="animate-pulse rounded-2xl border border-border bg-surface p-6">
+      <div className="flex gap-3">
+        <div className="h-12 w-12 rounded-xl bg-surface-alt" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-1/2 rounded bg-surface-alt" />
+          <div className="h-3 w-1/3 rounded bg-surface-alt" />
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-3">
+        <div className="h-3 w-1/4 rounded bg-surface-alt" />
+        <div className="h-3 w-full rounded bg-surface-alt" />
+        <div className="h-3 w-5/6 rounded bg-surface-alt" />
+      </div>
     </div>
   );
 }
-
-const controlClass =
-  "w-full rounded-xl border border-border bg-background px-3.5 py-3 text-sm text-text outline-none transition placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/10";
 
 export default function ExperiencesPage() {
   const [experiences, setExperiences] = useState([]);
@@ -200,22 +226,31 @@ export default function ExperiencesPage() {
 
         const response = await fetch(
           `/api/experiences?${params.toString()}`,
-          { signal, cache: "no-store" }
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            signal,
+          }
         );
 
         const result = await response.json();
 
         if (!response.ok || !result.success) {
           throw new Error(
-            result.message || "Unable to load experiences."
+            result.message || "Unable to load student experiences."
           );
         }
 
-        setExperiences(result.data || []);
+        setExperiences(
+          Array.isArray(result.data) ? result.data : []
+        );
+
         setPagination(result.pagination || null);
       } catch (err) {
         if (err.name !== "AbortError") {
           setError(err.message || "Something went wrong.");
+          setExperiences([]);
         }
       } finally {
         if (!signal.aborted) {
@@ -239,11 +274,6 @@ export default function ExperiencesPage() {
     };
   }, [fetchExperiences]);
 
-  function updateFilter(setter, value) {
-    setter(value);
-    setPage(1);
-  }
-
   function resetFilters() {
     setSearch("");
     setStatus("");
@@ -252,80 +282,98 @@ export default function ExperiencesPage() {
     setPage(1);
   }
 
-  function retry() {
-    const controller = new AbortController();
-    fetchExperiences(controller.signal);
-  }
+  const hasActiveFilters =
+    Boolean(search.trim()) ||
+    Boolean(status) ||
+    Boolean(minRating) ||
+    sort !== "newest";
 
   return (
-    <div className="w-full min-h-full bg-background font-ui text-text antialiased">
-      <main className="flex-1 min-w-0 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* Page heading */}
+    <div className="min-h-full w-full bg-background font-ui text-text antialiased">
+      <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
         <section className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                Community Insights
-                </span>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+              Community Insights
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="font-display text-3xl tracking-tight text-text sm:text-4xl">
+                Student Experiences.
+              </h1>
+
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
+                Learn from students who have applied, interviewed, and
+                worked at different companies. Real experiences can help
+                you make more informed internship decisions.
+              </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-                <div>
-                <h1 className="font-display text-3xl sm:text-4xl text-text tracking-tight">
-                    Student Experiences.
-                </h1>
-
-                <p className="text-sm text-text-secondary mt-1">
-                    Learn from students who have applied, interviewed and worked at
-                    different companies. Real experiences help you make informed
-                    internship decisions.
-                </p>
-                </div>
-
-                {pagination && (
-                <p className="text-xs text-text-muted">
-                    {pagination.total} experiences found
-                </p>
-                )}
-            </div>
+            {!loading && pagination && (
+              <p className="shrink-0 text-xs text-text-muted">
+                {pagination.total} experiences found
+              </p>
+            )}
+          </div>
         </section>
 
-        {/* Filters */}
         <section className="mb-7 rounded-2xl border border-border bg-surface p-4 sm:p-5">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-text">
               Find student experiences
             </h2>
 
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              Reset filters
-            </button>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="text-xs font-semibold text-primary transition hover:opacity-75"
+              >
+                Reset filters
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <FilterField label="Search company">
+            <div className="xl:col-span-1">
+              <label
+                htmlFor="experience-search"
+                className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text-muted"
+              >
+                Search company
+              </label>
+
               <input
-                type="text"
+                id="experience-search"
+                type="search"
                 value={search}
-                onChange={(event) =>
-                  updateFilter(setSearch, event.target.value)
-                }
-                placeholder="e.g. TechNova"
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Enter company name..."
                 className={controlClass}
               />
-            </FilterField>
+            </div>
 
-            <FilterField label="Employment status">
+            <div>
+              <label
+                htmlFor="experience-status"
+                className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text-muted"
+              >
+                Application status
+              </label>
+
               <select
+                id="experience-status"
                 value={status}
-                onChange={(event) =>
-                  updateFilter(setStatus, event.target.value)
-                }
+                onChange={(event) => {
+                  setStatus(event.target.value);
+                  setPage(1);
+                }}
                 className={controlClass}
               >
                 {statuses.map((item) => (
@@ -334,14 +382,23 @@ export default function ExperiencesPage() {
                   </option>
                 ))}
               </select>
-            </FilterField>
+            </div>
 
-            <FilterField label="Minimum rating">
+            <div>
+              <label
+                htmlFor="experience-rating"
+                className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text-muted"
+              >
+                Minimum rating
+              </label>
+
               <select
+                id="experience-rating"
                 value={minRating}
-                onChange={(event) =>
-                  updateFilter(setMinRating, event.target.value)
-                }
+                onChange={(event) => {
+                  setMinRating(event.target.value);
+                  setPage(1);
+                }}
                 className={controlClass}
               >
                 <option value="">Any rating</option>
@@ -351,159 +408,159 @@ export default function ExperiencesPage() {
                 <option value="2">2+ stars</option>
                 <option value="1">1+ stars</option>
               </select>
-            </FilterField>
+            </div>
 
-            <FilterField label="Sort by">
+            <div>
+              <label
+                htmlFor="experience-sort"
+                className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text-muted"
+              >
+                Sort by
+              </label>
+
               <select
+                id="experience-sort"
                 value={sort}
-                onChange={(event) =>
-                  updateFilter(setSort, event.target.value)
-                }
+                onChange={(event) => {
+                  setSort(event.target.value);
+                  setPage(1);
+                }}
                 className={controlClass}
               >
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
                 <option value="highestRated">Highest rated</option>
               </select>
-            </FilterField>
+            </div>
           </div>
         </section>
 
-        {/* Results heading */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-bold text-text">
-              Community experiences
-            </h2>
-            <p className="mt-1 text-xs text-text-muted">
-              Insights shared by students across different internship stages.
-            </p>
-          </div>
-
-          {pagination && (
-            <span className="text-xs text-text-muted">
-              {pagination.total} total
-            </span>
-          )}
-        </div>
-
-        {/* Loading */}
-        {loading ? (
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="animate-pulse rounded-2xl border border-border bg-surface p-6"
-              >
-                <div className="mb-5 flex gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-surface-alt" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-1/2 rounded bg-surface-alt" />
-                    <div className="h-3 w-1/3 rounded bg-surface-alt" />
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="h-3 w-full rounded bg-surface-alt" />
-                  <div className="h-3 w-5/6 rounded bg-surface-alt" />
-                  <div className="h-3 w-4/6 rounded bg-surface-alt" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : error ? (
-          /* Error */
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-            <h3 className="font-semibold text-text">
-              Couldn't load experiences
-            </h3>
-
-            <p className="mt-2 text-sm text-text-muted">{error}</p>
+        {error && (
+          <div
+            role="alert"
+            className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400"
+          >
+            <span>{error}</span>
 
             <button
               type="button"
-              onClick={retry}
-              className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+              onClick={() => {
+                const controller = new AbortController();
+                fetchExperiences(controller.signal);
+              }}
+              className="font-semibold underline underline-offset-2"
             >
-              Try again
+              Retry
             </button>
-          </div>
-        ) : experiences.length === 0 ? (
-          /* Empty state */
-          <div className="rounded-2xl border border-dashed border-border bg-surface px-5 py-16 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <svg
-                className="h-8 w-8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.7}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 10h8M8 14h5m-8 7l3.5-3H18a3 3 0 003-3V6a3 3 0 00-3-3H6a3 3 0 00-3 3v12z"
-                />
-              </svg>
-            </div>
-
-            <h3 className="mt-5 text-lg font-bold text-text">
-              No experiences found
-            </h3>
-
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-text-muted">
-              There aren't any approved experiences matching these filters
-              yet. Try changing your search or check back later.
-            </p>
-
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="mt-6 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-            >
-              Clear filters
-            </button>
-          </div>
-        ) : (
-          /* Experience cards */
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-            {experiences.map((experience) => (
-              <ExperienceCard
-                key={experience._id}
-                experience={experience}
-              />
-            ))}
           </div>
         )}
 
-        {/* Pagination */}
-        {!loading && !error && pagination?.totalPages > 1 && (
-          <div className="mt-7 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-4">
-            <button
-              type="button"
-              disabled={!pagination.hasPreviousPage}
-              onClick={() => setPage((current) => current - 1)}
-              className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-text transition hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              ← Previous
-            </button>
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-text">
+              Community experiences
+            </h2>
 
-            <span className="text-sm text-text-muted">
-              Page{" "}
-              <span className="font-semibold text-text">
-                {pagination.page}
-              </span>{" "}
-              of {pagination.totalPages}
-            </span>
-
-            <button
-              type="button"
-              disabled={!pagination.hasNextPage}
-              onClick={() => setPage((current) => current + 1)}
-              className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-text transition hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next →
-            </button>
+            {!loading && pagination && (
+              <span className="text-xs text-text-muted">
+                Page {pagination.page} of {Math.max(1, pagination.totalPages)}
+              </span>
+            )}
           </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+              {[1, 2, 3, 4].map((item) => (
+                <LoadingCard key={item} />
+              ))}
+            </div>
+          ) : experiences.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-surface px-5 py-16 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <svg
+                  className="h-8 w-8"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.7}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2m16 0v-2a4 4 0 00-3-3.87M14 3.13a4 4 0 010 7.75M14 11h-2"
+                  />
+                  <circle cx="10" cy="7" r="4" />
+                </svg>
+              </div>
+
+              <h3 className="mt-5 text-lg font-bold text-text">
+                No experiences found
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-text-muted">
+                There are no approved experiences matching these filters.
+                Try changing your search or check back later.
+              </p>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="mt-6 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-text transition hover:border-primary/50"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+              {experiences.map((experience) => (
+                <ExperienceCard
+                  key={experience._id}
+                  experience={experience}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {!loading && pagination && pagination.totalPages > 1 && (
+          <nav
+            aria-label="Experience pages"
+            className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5"
+          >
+            <p className="text-xs text-text-muted">
+              Showing page {pagination.page} of {pagination.totalPages}
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={!pagination.hasPreviousPage}
+                onClick={() => {
+                  setPage((current) => Math.max(1, current - 1));
+                }}
+                className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-text transition hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              <span className="min-w-10 text-center text-sm font-semibold tabular-nums text-text">
+                {pagination.page}
+              </span>
+
+              <button
+                type="button"
+                disabled={!pagination.hasNextPage}
+                onClick={() => {
+                  setPage((current) => current + 1);
+                }}
+                className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-text transition hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </nav>
         )}
       </main>
     </div>

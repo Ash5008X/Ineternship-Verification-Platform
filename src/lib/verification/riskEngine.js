@@ -113,7 +113,26 @@ const getSeverity = (score) => {
 
     return "critical";
 };
+const getDecision = (score, triggeredRules, requiresManualReview) => {
+    const hardStopRules = [
+        "APPLICATION_FEE",
+        "UPFRONT_PAYMENT",
+    ];
 
+    const hasHardStop = triggeredRules.some((rule) =>
+        hardStopRules.includes(rule.ruleId)
+    );
+
+    if (hasHardStop) {
+        return "rejected";
+    }
+
+    if (score >= 20 || requiresManualReview) {
+        return "needs_review";
+    }
+
+    return "approved";
+};
 export function calculateRisk({
     internship,
     company,
@@ -261,18 +280,26 @@ export function calculateRisk({
     const score = Math.min(rawScore, 100);
     const severity = getSeverity(score);
 
+
+    const decision = getDecision(
+        score,
+        triggeredRules,
+        signals.requiresManualReview === true
+    );
+
     const reasons = triggeredRules.map(
         (rule) => rule.description
     );
 
     return {
-        score,
-        severity,
-        triggeredRules,
-        reasons,
-        status: signals.requiresManualReview
-            ? "needs_review"
-            : "completed",
-        ruleSetVersion: RULE_SET_VERSION,
-    };
+    score,
+    severity,
+    decision,
+    triggeredRules,
+    reasons,
+    status: signals.requiresManualReview
+        ? "needs_review"
+        : "completed",
+    ruleSetVersion: RULE_SET_VERSION,
+};
 }

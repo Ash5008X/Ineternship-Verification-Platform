@@ -1,6 +1,6 @@
+
 import Avatar from "../ui/Avatar";
 import MatchBadge from "./MatchBadge";
-import RiskBadge from "./RiskBadge";
 import IconButton from "../ui/IconButton";
 
 /**
@@ -21,7 +21,6 @@ export default function InternshipCard({
     workMode,
     stipend,
     matchPercentage,
-    riskLevel,
     isBookmarked,
     skills = [],
     initials,
@@ -53,20 +52,23 @@ export default function InternshipCard({
             size="md"
             className="shrink-0 rounded-[var(--radius-md)]"
           />
+
           <div className="min-w-0">
             <h3 className="font-ui font-bold text-sm text-text truncate group-hover:text-primary transition-colors leading-snug">
               {role}
             </h3>
+
             <p className="font-ui text-xs text-text-secondary truncate mt-0.5">
               {company}
             </p>
           </div>
         </div>
 
-        {/* Action icons */}
+        {/* Action Icons */}
         <div
           className="flex items-center gap-1 shrink-0 -mr-1"
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
         >
           <IconButton
             size="sm"
@@ -78,7 +80,9 @@ export default function InternshipCard({
           >
             <svg
               className={`w-4 h-4 ${
-                isBookmarked ? "fill-primary text-primary" : "text-text-muted hover:text-text"
+                isBookmarked
+                  ? "fill-primary text-primary"
+                  : "text-text-muted hover:text-text"
               }`}
               fill={isBookmarked ? "currentColor" : "none"}
               viewBox="0 0 24 24"
@@ -117,19 +121,16 @@ export default function InternshipCard({
         </div>
       </div>
 
-      {/* Meta tags: Location & Work Mode */}
+      {/* Location & Work Mode */}
       <div className="mt-2.5 flex items-center text-xs text-text-secondary gap-2">
         <span className="truncate">{location}</span>
         <span className="w-1 h-1 rounded-full bg-border-strong shrink-0" />
         <span className="shrink-0">{workMode}</span>
       </div>
 
-      {/* Badges: Match Score & Risk Level (Visually Separate) */}
+      {/* Match Score & Stipend */}
       <div className="mt-3 flex items-center justify-between gap-2 pt-2.5 border-t border-border/60">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <MatchBadge percentage={matchPercentage} size="xs" />
-          <RiskBadge level={riskLevel} size="xs" />
-        </div>
+        <MatchBadge percentage={matchPercentage} size="xs" />
 
         <div className="text-right shrink-0">
           <span className="font-number font-bold text-xs text-text">
@@ -138,7 +139,7 @@ export default function InternshipCard({
         </div>
       </div>
 
-      {/* Skills snippet */}
+      {/* Skills Snippet */}
       {skills.length > 0 && (
         <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
           {skills.slice(0, 3).map((skill) => (
@@ -149,6 +150,7 @@ export default function InternshipCard({
               {skill}
             </span>
           ))}
+
           {skills.length > 3 && (
             <span className="text-[10px] text-text-muted font-ui">
               +{skills.length - 3}
@@ -157,7 +159,7 @@ export default function InternshipCard({
         </div>
       )}
 
-      {/* Active accent indicator */}
+      {/* Active Accent Indicator */}
       {isSelected && (
         <div className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r-md" />
       )}
